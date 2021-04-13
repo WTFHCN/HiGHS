@@ -40,47 +40,46 @@ Highs::Highs() {
   hmos_.push_back(HighsModelObject(lp_, options_, timer_));
 }
 
-HighsStatus Highs::setHighsOptionValue(const std::string& option,
-                                       const bool value) {
-  if (setOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::setOptionValue(const std::string& option, const bool value) {
+  if (setLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::setHighsOptionValue(const std::string& option,
-                                       const HighsInt value) {
-  if (setOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::setOptionValue(const std::string& option,
+                                  const HighsInt value) {
+  if (setLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::setHighsOptionValue(const std::string& option,
-                                       const double value) {
-  if (setOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::setOptionValue(const std::string& option,
+                                  const double value) {
+  if (setLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::setHighsOptionValue(const std::string& option,
-                                       const std::string value) {
-  if (setOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::setOptionValue(const std::string& option,
+                                  const std::string value) {
+  if (setLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::setHighsOptionValue(const std::string& option,
-                                       const char* value) {
-  if (setOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::setOptionValue(const std::string& option,
+                                  const char* value) {
+  if (setLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::readHighsOptions(const std::string filename) {
+HighsStatus Highs::readOptions(const std::string filename) {
   if (filename.size() <= 0) {
     highsLogUser(options_.log_options, HighsLogType::WARNING,
                  "Empty file name so not reading options\n");
@@ -91,66 +90,65 @@ HighsStatus Highs::readHighsOptions(const std::string filename) {
   return HighsStatus::OK;
 }
 
-HighsStatus Highs::passHighsOptions(const HighsOptions& options) {
-  if (passOptions(options_.log_options, options, options_) == OptionStatus::OK)
-    return HighsStatus::OK;
-  return HighsStatus::Error;
-}
-
-const HighsOptions& Highs::getHighsOptions() { return options_; }
-
-HighsStatus Highs::getHighsOptionValue(const std::string& option, bool& value) {
-  if (getOptionValue(options_.log_options, option, options_.records, value) ==
+HighsStatus Highs::passOptions(const HighsOptions& options) {
+  if (passLocalOptions(options_.log_options, options, options_) ==
       OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::getHighsOptionValue(const std::string& option,
-                                       HighsInt& value) {
-  if (getOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+const HighsOptions& Highs::getOptions() { return options_; }
+
+HighsStatus Highs::getOptionValue(const std::string& option, bool& value) {
+  if (getLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::getHighsOptionValue(const std::string& option,
-                                       double& value) {
-  if (getOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::getOptionValue(const std::string& option, HighsInt& value) {
+  if (getLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::getHighsOptionValue(const std::string& option,
-                                       std::string& value) {
-  if (getOptionValue(options_.log_options, option, options_.records, value) ==
-      OptionStatus::OK)
+HighsStatus Highs::getOptionValue(const std::string& option, double& value) {
+  if (getLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::getHighsOptionType(const std::string& option,
-                                      HighsOptionType& type) {
-  if (getOptionType(options_.log_options, option, options_.records, type) ==
-      OptionStatus::OK)
+HighsStatus Highs::getOptionValue(const std::string& option,
+                                  std::string& value) {
+  if (getLocalOptionValue(options_.log_options, option, options_.records,
+                          value) == OptionStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::resetHighsOptions() {
-  resetOptions(options_.records);
+HighsStatus Highs::getOptionType(const std::string& option,
+                                 HighsOptionType& type) {
+  if (getLocalOptionType(options_.log_options, option, options_.records,
+                         type) == OptionStatus::OK)
+    return HighsStatus::OK;
+  return HighsStatus::Error;
+}
+
+HighsStatus Highs::resetOptions() {
+  resetLocalOptions(options_.records);
   return HighsStatus::OK;
 }
 
-HighsStatus Highs::writeHighsOptions(
-    const std::string filename, const bool report_only_non_default_values) {
+HighsStatus Highs::writeOptions(const std::string filename,
+                                const bool report_only_non_default_values) {
   HighsStatus return_status = HighsStatus::OK;
   FILE* file;
   bool html;
-  return_status = interpretCallStatus(
-      openWriteFile(filename, "writeHighsOptions", file, html), return_status,
-      "openWriteFile");
+  return_status =
+      interpretCallStatus(openWriteFile(filename, "writeOptions", file, html),
+                          return_status, "openWriteFile");
   if (return_status == HighsStatus::Error) return return_status;
 
   return_status = interpretCallStatus(
@@ -160,29 +158,28 @@ HighsStatus Highs::writeHighsOptions(
   return return_status;
 }
 
-const HighsOptions& Highs::getHighsOptions() const { return options_; }
+const HighsOptions& Highs::getOptions() const { return options_; }
 
-const HighsInfo& Highs::getHighsInfo() const { return info_; }
+const HighsInfo& Highs::getInfo() const { return info_; }
 
-HighsStatus Highs::getHighsInfoValue(const std::string& info, HighsInt& value) {
-  if (getInfoValue(options_, info, info_.records, value) == InfoStatus::OK)
+HighsStatus Highs::getInfoValue(const std::string& info, HighsInt& value) {
+  if (getLocalInfoValue(options_, info, info_.records, value) == InfoStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::getHighsInfoValue(const std::string& info,
-                                     double& value) const {
-  if (getInfoValue(options_, info, info_.records, value) == InfoStatus::OK)
+HighsStatus Highs::getInfoValue(const std::string& info, double& value) const {
+  if (getLocalInfoValue(options_, info, info_.records, value) == InfoStatus::OK)
     return HighsStatus::OK;
   return HighsStatus::Error;
 }
 
-HighsStatus Highs::writeHighsInfo(const std::string filename) {
+HighsStatus Highs::writeInfo(const std::string filename) {
   HighsStatus return_status = HighsStatus::OK;
   FILE* file;
   bool html;
   return_status =
-      interpretCallStatus(openWriteFile(filename, "writeHighsInfo", file, html),
+      interpretCallStatus(openWriteFile(filename, "writeInfo", file, html),
                           return_status, "openWriteFile");
   if (return_status == HighsStatus::Error) return return_status;
 
@@ -1270,6 +1267,71 @@ bool Highs::changeObjectiveSense(const ObjSense sense) {
   return returnFromHighs(return_status) != HighsStatus::Error;
 }
 
+bool Highs::changeColIntegrality(const HighsInt col,
+                                 const HighsVarType integrality) {
+  return changeColsIntegrality(1, &col, &integrality);
+}
+
+bool Highs::changeColsIntegrality(const HighsInt from_col,
+                                  const HighsInt to_col,
+                                  const HighsVarType* integrality) {
+  HighsStatus return_status = HighsStatus::OK;
+  HighsStatus call_status;
+  HighsIndexCollection index_collection;
+  index_collection.dimension_ = lp_.numCol_;
+  index_collection.is_interval_ = true;
+  index_collection.from_ = from_col;
+  index_collection.to_ = to_col;
+  if (!haveHmo("changeColsIntegrality")) return false;
+  call_status = changeIntegralityInterface(index_collection, integrality);
+  return_status =
+      interpretCallStatus(call_status, return_status, "changeIntegrality");
+  if (return_status == HighsStatus::Error) return false;
+  return returnFromHighs(return_status) != HighsStatus::Error;
+}
+
+bool Highs::changeColsIntegrality(const HighsInt num_set_entries,
+                                  const HighsInt* set,
+                                  const HighsVarType* integrality) {
+  if (num_set_entries <= 0) return true;
+  HighsStatus return_status = HighsStatus::OK;
+  HighsStatus call_status;
+  // Create a local set that is not const since index_collection.set_
+  // cannot be const as it may change if the set is not ordered
+  vector<HighsInt> local_set{set, set + num_set_entries};
+  HighsIndexCollection index_collection;
+  index_collection.dimension_ = lp_.numCol_;
+  index_collection.is_set_ = true;
+  index_collection.set_ = &local_set[0];
+  index_collection.set_num_entries_ = num_set_entries;
+  if (!haveHmo("changeColsIntegrality")) return false;
+  call_status = changeIntegralityInterface(index_collection, integrality);
+  return_status =
+      interpretCallStatus(call_status, return_status, "changeIntegrality");
+  if (return_status == HighsStatus::Error) return false;
+  return returnFromHighs(return_status) != HighsStatus::Error;
+}
+
+bool Highs::changeColsIntegrality(const HighsInt* mask,
+                                  const HighsVarType* integrality) {
+  HighsStatus return_status = HighsStatus::OK;
+  HighsStatus call_status;
+  // Create a local mask that is not const since
+  // index_collection.mask_ cannot be const as it changes when
+  // deleting rows/columns
+  vector<HighsInt> local_mask{mask, mask + lp_.numCol_};
+  HighsIndexCollection index_collection;
+  index_collection.dimension_ = lp_.numCol_;
+  index_collection.is_mask_ = true;
+  index_collection.mask_ = &local_mask[0];
+  if (!haveHmo("changeColsIntegrality")) return false;
+  call_status = changeIntegralityInterface(index_collection, integrality);
+  return_status =
+      interpretCallStatus(call_status, return_status, "changeIntegrality");
+  if (return_status == HighsStatus::Error) return false;
+  return returnFromHighs(return_status) != HighsStatus::Error;
+}
+
 bool Highs::changeColCost(const HighsInt col, const double cost) {
   return changeColsCost(1, &col, &cost);
 }
@@ -1730,9 +1792,9 @@ bool Highs::scaleRow(const HighsInt row, const double scaleval) {
   return returnFromHighs(return_status) != HighsStatus::Error;
 }
 
-double Highs::getHighsInfinity() { return HIGHS_CONST_INF; }
+double Highs::getInfinity() { return HIGHS_CONST_INF; }
 
-double Highs::getHighsRunTime() { return timer_.readRunHighsClock(); }
+double Highs::getRunTime() { return timer_.readRunHighsClock(); }
 
 HighsStatus Highs::clearSolver() {
   clearModelStatus();
@@ -1793,24 +1855,6 @@ std::string Highs::primalDualStatusToString(const HighsInt primal_dual_status) {
 void Highs::setMatrixOrientation(const MatrixOrientation& desired_orientation) {
   setOrientation(lp_, desired_orientation);
 }
-
-// Start of deprecated methods
-// HighsStatus Highs::setHighsOptionValue(const std::string& option,
-//                                       const bool value) {
-//  return setOptionValue(option, value);
-//}
-
-HighsStatus Highs::setHighsLogfile(FILE* logfile) {
-  options_.output_flag = false;
-  return HighsStatus::OK;
-}
-
-HighsStatus Highs::setHighsOutput(FILE* output) {
-  options_.output_flag = false;
-  return HighsStatus::OK;
-}
-
-// End of deprecated methods
 
 // Private methods
 HighsPresolveStatus Highs::runPresolve() {

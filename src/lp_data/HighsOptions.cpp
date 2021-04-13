@@ -316,71 +316,76 @@ OptionStatus checkOptionValue(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const bool value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const bool value) {
   HighsInt index;
-  //  printf("setOptionValue: \"%s\" with bool %" HIGHSINT_FORMAT "\n",
+  //  printf("setLocalOptionValue: \"%s\" with bool %" HIGHSINT_FORMAT "\n",
   //  name.c_str(), value);
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::BOOL) {
-    highsLogUser(log_options, HighsLogType::ERROR,
-                 "setOptionValue: Option \"%s\" cannot be assigned a bool\n",
-                 name.c_str());
+    highsLogUser(
+        log_options, HighsLogType::ERROR,
+        "setLocalOptionValue: Option \"%s\" cannot be assigned a bool\n",
+        name.c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
-  return setOptionValue(((OptionRecordBool*)option_records[index])[0], value);
+  return setLocalOptionValue(((OptionRecordBool*)option_records[index])[0],
+                             value);
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const HighsInt value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const HighsInt value) {
   HighsInt index;
-  //  printf("setOptionValue: \"%s\" with HighsInt %" HIGHSINT_FORMAT "\n",
+  //  printf("setLocalOptionValue: \"%s\" with HighsInt %" HIGHSINT_FORMAT "\n",
   //  name.c_str(), value);
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::INT) {
-    highsLogUser(log_options, HighsLogType::ERROR,
-                 "setOptionValue: Option \"%s\" cannot be assigned an int\n",
-                 name.c_str());
+    highsLogUser(
+        log_options, HighsLogType::ERROR,
+        "setLocalOptionValue: Option \"%s\" cannot be assigned an int\n",
+        name.c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
-  return setOptionValue(log_options,
-                        ((OptionRecordInt*)option_records[index])[0], value);
+  return setLocalOptionValue(
+      log_options, ((OptionRecordInt*)option_records[index])[0], value);
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const double value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const double value) {
   HighsInt index;
-  //  printf("setOptionValue: \"%s\" with double %g\n", name.c_str(), value);
+  //  printf("setLocalOptionValue: \"%s\" with double %g\n", name.c_str(),
+  //  value);
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::DOUBLE) {
-    highsLogUser(log_options, HighsLogType::ERROR,
-                 "setOptionValue: Option \"%s\" cannot be assigned a double\n",
-                 name.c_str());
+    highsLogUser(
+        log_options, HighsLogType::ERROR,
+        "setLocalOptionValue: Option \"%s\" cannot be assigned a double\n",
+        name.c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
-  return setOptionValue(log_options,
-                        ((OptionRecordDouble*)option_records[index])[0], value);
+  return setLocalOptionValue(
+      log_options, ((OptionRecordDouble*)option_records[index])[0], value);
 }
 
-OptionStatus setOptionValue(HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const std::string value) {
+OptionStatus setLocalOptionValue(HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const std::string value) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
@@ -392,12 +397,12 @@ OptionStatus setOptionValue(HighsLogOptions& log_options,
     if (!return_status) {
       highsLogUser(
           log_options, HighsLogType::ERROR,
-          "setOptionValue: Value \"%s\" cannot be interpreted as a bool\n",
+          "setLocalOptionValue: Value \"%s\" cannot be interpreted as a bool\n",
           value.c_str());
       return OptionStatus::ILLEGAL_VALUE;
     }
-    return setOptionValue(((OptionRecordBool*)option_records[index])[0],
-                          value_bool);
+    return setLocalOptionValue(((OptionRecordBool*)option_records[index])[0],
+                               value_bool);
   } else if (type == HighsOptionType::INT) {
     HighsInt value_int;
     int scanned_num_char;
@@ -407,7 +412,7 @@ OptionStatus setOptionValue(HighsLogOptions& log_options,
     const bool converted_ok = scanned_num_char == value_num_char;
     if (!converted_ok) {
       highsLogDev(log_options, HighsLogType::ERROR,
-                  "setOptionValue: Value = \"%s\" converts via sscanf as "
+                  "setLocalOptionValue: Value = \"%s\" converts via sscanf as "
                   "%" HIGHSINT_FORMAT
                   " "
                   "by scanning %" HIGHSINT_FORMAT " of %" HIGHSINT_FORMAT
@@ -415,7 +420,7 @@ OptionStatus setOptionValue(HighsLogOptions& log_options,
                   value.c_str(), value_int, scanned_num_char, value_num_char);
       return OptionStatus::ILLEGAL_VALUE;
     }
-    return setOptionValue(
+    return setLocalOptionValue(
         log_options, ((OptionRecordInt*)option_records[index])[0], value_int);
   } else if (type == HighsOptionType::DOUBLE) {
     HighsInt value_int = atoi(value.c_str());
@@ -423,15 +428,15 @@ OptionStatus setOptionValue(HighsLogOptions& log_options,
     double value_int_double = value_int;
     if (value_double == value_int_double) {
       highsLogDev(log_options, HighsLogType::INFO,
-                  "setOptionValue: Value = \"%s\" converts via atoi as "
+                  "setLocalOptionValue: Value = \"%s\" converts via atoi as "
                   "%" HIGHSINT_FORMAT
                   " "
                   "so is %g as double, and %g via atof\n",
                   value.c_str(), value_int, value_int_double, value_double);
     }
-    return setOptionValue(log_options,
-                          ((OptionRecordDouble*)option_records[index])[0],
-                          atof(value.c_str()));
+    return setLocalOptionValue(log_options,
+                               ((OptionRecordDouble*)option_records[index])[0],
+                               atof(value.c_str()));
   } else {
     // Setting a string option value
     if (!name.compare(log_file_string)) {
@@ -453,57 +458,60 @@ OptionStatus setOptionValue(HighsLogOptions& log_options,
       // Don't allow model filename to be changed - it's only an
       // option so that reading of run-time options works
       highsLogUser(log_options, HighsLogType::ERROR,
-                   "setOptionValue: model filename cannot be set\n");
+                   "setLocalOptionValue: model filename cannot be set\n");
       return OptionStatus::UNKNOWN_OPTION;
     } else {
-      return setOptionValue(
+      return setLocalOptionValue(
           log_options, ((OptionRecordString*)option_records[index])[0], value);
     }
   }
 }
 
-OptionStatus setOptionValue(HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const char* value) {
+OptionStatus setLocalOptionValue(HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const char* value) {
   // Handles values passed as explicit values in quotes
   std::string value_as_string(value);
-  return setOptionValue(log_options, name, option_records, value_as_string);
+  return setLocalOptionValue(log_options, name, option_records,
+                             value_as_string);
 }
 
-OptionStatus setOptionValue(OptionRecordBool& option, const bool value) {
+OptionStatus setLocalOptionValue(OptionRecordBool& option, const bool value) {
   option.assignvalue(value);
   return OptionStatus::OK;
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordInt& option, const HighsInt value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordInt& option,
+                                 const HighsInt value) {
   OptionStatus return_status = checkOptionValue(log_options, option, value);
   if (return_status != OptionStatus::OK) return return_status;
   option.assignvalue(value);
   return OptionStatus::OK;
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordDouble& option, const double value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordDouble& option,
+                                 const double value) {
   OptionStatus return_status = checkOptionValue(log_options, option, value);
   if (return_status != OptionStatus::OK) return return_status;
   option.assignvalue(value);
   return OptionStatus::OK;
 }
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordString& option,
-                            const std::string value) {
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordString& option,
+                                 const std::string value) {
   OptionStatus return_status = checkOptionValue(log_options, option, value);
   if (return_status != OptionStatus::OK) return return_status;
   option.assignvalue(value);
   return OptionStatus::OK;
 }
 
-OptionStatus passOptions(const HighsLogOptions& log_options,
-                         const HighsOptions& from_options,
-                         HighsOptions& to_options) {
+OptionStatus passLocalOptions(const HighsLogOptions& log_options,
+                              const HighsOptions& from_options,
+                              HighsOptions& to_options) {
   // (Attempt to) set option value from the HighsOptions passed in
   OptionStatus return_status;
   HighsInt num_options = to_options.records.size();
@@ -539,26 +547,26 @@ OptionStatus passOptions(const HighsLogOptions& log_options,
     HighsOptionType type = to_options.records[index]->type;
     if (type == HighsOptionType::BOOL) {
       bool value = *(((OptionRecordBool*)from_options.records[index])[0].value);
-      return_status = setOptionValue(
+      return_status = setLocalOptionValue(
           ((OptionRecordBool*)to_options.records[index])[0], value);
       if (return_status != OptionStatus::OK) return return_status;
     } else if (type == HighsOptionType::INT) {
       HighsInt value =
           *(((OptionRecordInt*)from_options.records[index])[0].value);
-      return_status = setOptionValue(
+      return_status = setLocalOptionValue(
           log_options, ((OptionRecordInt*)to_options.records[index])[0], value);
       if (return_status != OptionStatus::OK) return return_status;
     } else if (type == HighsOptionType::DOUBLE) {
       double value =
           *(((OptionRecordDouble*)from_options.records[index])[0].value);
-      return_status = setOptionValue(
+      return_status = setLocalOptionValue(
           log_options, ((OptionRecordDouble*)to_options.records[index])[0],
           value);
       if (return_status != OptionStatus::OK) return return_status;
     } else {
       std::string value =
           *(((OptionRecordString*)from_options.records[index])[0].value);
-      return_status = setOptionValue(
+      return_status = setLocalOptionValue(
           log_options, ((OptionRecordString*)to_options.records[index])[0],
           value);
       if (return_status != OptionStatus::OK) return return_status;
@@ -567,20 +575,19 @@ OptionStatus passOptions(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            bool& value) {
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, bool& value) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::BOOL) {
-    highsLogUser(
-        log_options, HighsLogType::ERROR,
-        "getOptionValue: Option \"%s\" requires value of type %s, not bool\n",
-        name.c_str(), optionEntryType2string(type).c_str());
+    highsLogUser(log_options, HighsLogType::ERROR,
+                 "getLocalOptionValue: Option \"%s\" requires value of type "
+                 "%s, not bool\n",
+                 name.c_str(), optionEntryType2string(type).c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
   OptionRecordBool option = ((OptionRecordBool*)option_records[index])[0];
@@ -588,20 +595,19 @@ OptionStatus getOptionValue(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            HighsInt& value) {
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, HighsInt& value) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::INT) {
-    highsLogUser(
-        log_options, HighsLogType::ERROR,
-        "getOptionValue: Option \"%s\" requires value of type %s, not int\n",
-        name.c_str(), optionEntryType2string(type).c_str());
+    highsLogUser(log_options, HighsLogType::ERROR,
+                 "getLocalOptionValue: Option \"%s\" requires value of type "
+                 "%s, not int\n",
+                 name.c_str(), optionEntryType2string(type).c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
   OptionRecordInt option = ((OptionRecordInt*)option_records[index])[0];
@@ -609,20 +615,19 @@ OptionStatus getOptionValue(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            double& value) {
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, double& value) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::DOUBLE) {
-    highsLogUser(
-        log_options, HighsLogType::ERROR,
-        "getOptionValue: Option \"%s\" requires value of type %s, not double\n",
-        name.c_str(), optionEntryType2string(type).c_str());
+    highsLogUser(log_options, HighsLogType::ERROR,
+                 "getLocalOptionValue: Option \"%s\" requires value of type "
+                 "%s, not double\n",
+                 name.c_str(), optionEntryType2string(type).c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
   OptionRecordDouble option = ((OptionRecordDouble*)option_records[index])[0];
@@ -630,20 +635,19 @@ OptionStatus getOptionValue(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            std::string& value) {
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, std::string& value) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
   if (status != OptionStatus::OK) return status;
   HighsOptionType type = option_records[index]->type;
   if (type != HighsOptionType::STRING) {
-    highsLogUser(
-        log_options, HighsLogType::ERROR,
-        "getOptionValue: Option \"%s\" requires value of type %s, not string\n",
-        name.c_str(), optionEntryType2string(type).c_str());
+    highsLogUser(log_options, HighsLogType::ERROR,
+                 "getLocalOptionValue: Option \"%s\" requires value of type "
+                 "%s, not string\n",
+                 name.c_str(), optionEntryType2string(type).c_str());
     return OptionStatus::ILLEGAL_VALUE;
   }
   OptionRecordString option = ((OptionRecordString*)option_records[index])[0];
@@ -651,10 +655,9 @@ OptionStatus getOptionValue(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-OptionStatus getOptionType(const HighsLogOptions& log_options,
-                           const std::string& name,
-                           const std::vector<OptionRecord*>& option_records,
-                           HighsOptionType& type) {
+OptionStatus getLocalOptionType(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, HighsOptionType& type) {
   HighsInt index;
   OptionStatus status =
       getOptionIndex(log_options, name, option_records, index);
@@ -663,7 +666,7 @@ OptionStatus getOptionType(const HighsLogOptions& log_options,
   return OptionStatus::OK;
 }
 
-void resetOptions(std::vector<OptionRecord*>& option_records) {
+void resetLocalOptions(std::vector<OptionRecord*>& option_records) {
   HighsInt num_options = option_records.size();
   for (HighsInt index = 0; index < num_options; index++) {
     HighsOptionType type = option_records[index]->type;

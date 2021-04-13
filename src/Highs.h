@@ -87,103 +87,92 @@ class Highs {
    * @brief Sets an option to the bool/int/double/string  value if it's
    * legal and, for bool/int/double, only if it's of the correct type
    */
-  //  HighsStatus setHighsOptionValue(
-  //      const std::string& option,  //!< The option name
-  //      const bool value            //!< The option value
-  //  );
 
-  HighsStatus setHighsOptionValue(
-      const std::string& option,  //!< The option name
-      const HighsInt value        //!< The option value
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const bool value            //!< The option value
+  );
+
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const HighsInt value        //!< The option value
   );
 
 #ifdef HIGHSINT64
-  HighsStatus setHighsOptionValue(
-      const std::string& option,  //!< The option name
-      const int value             //!< The option value
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const int value             //!< The option value
   ) {
-    return setHighsOptionValue(option, HighsInt{value});
+    return setOptionValue(option, HighsInt{value});
   }
 #endif
 
-  HighsStatus setHighsOptionValue(
-      const std::string& option,  //!< The option name
-      const double value          //!< The option value
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const double value          //!< The option value
   );
 
-  HighsStatus setHighsOptionValue(
-      const std::string& option,  //!< The option name
-      const std::string value     //!< The option value
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const std::string value     //!< The option value
   );
 
-  HighsStatus setHighsOptionValue(
-      const std::string& option,  //!< The option name
-      const char* value           //!< The option value
+  HighsStatus setOptionValue(const std::string& option,  //!< The option name
+                             const char* value           //!< The option value
   );
 
-  HighsStatus readHighsOptions(const std::string filename  //!< The filename
+  HighsStatus readOptions(const std::string filename  //!< The filename
   );
 
-  HighsStatus passHighsOptions(const HighsOptions& options  //!< The options
+  HighsStatus passOptions(const HighsOptions& options  //!< The options
   );
 
-  const HighsOptions& getHighsOptions();
+  const HighsOptions& getOptions();
 
   /**
    * @brief Gets an option value as bool/int/double/string and, for
    * bool/int/double, only if it's of the correct type.
    */
-  HighsStatus getHighsOptionValue(
-      const std::string& option,  //!< The option name
-      bool& value                 //!< The option value
+  HighsStatus getOptionValue(const std::string& option,  //!< The option name
+                             bool& value                 //!< The option value
   );
 
-  HighsStatus getHighsOptionValue(
-      const std::string& option,  //!< The option name
-      HighsInt& value             //!< The option value
+  HighsStatus getOptionValue(const std::string& option,  //!< The option name
+                             HighsInt& value             //!< The option value
   );
 
-  HighsStatus getHighsOptionValue(
-      const std::string& option,  //!< The option name
-      double& value               //!< The option value
+  HighsStatus getOptionValue(const std::string& option,  //!< The option name
+                             double& value               //!< The option value
   );
 
-  HighsStatus getHighsOptionValue(
-      const std::string& option,  //!< The option name
-      std::string& value          //!< The option value
+  HighsStatus getOptionValue(const std::string& option,  //!< The option name
+                             std::string& value          //!< The option value
   );
 
   /**
    * @brief Get the type expected by an option
    */
-  HighsStatus getHighsOptionType(
-      const std::string& option,  //!< The option name
-      HighsOptionType& type       //!< The option type
+  HighsStatus getOptionType(const std::string& option,  //!< The option name
+                            HighsOptionType& type       //!< The option type
   );
 
-  const HighsOptions& getHighsOptions() const;
+  const HighsOptions& getOptions() const;
 
-  HighsStatus resetHighsOptions();
+  HighsStatus resetOptions();
 
-  HighsStatus writeHighsOptions(
-      const std::string filename,  //!< The filename
-      const bool report_only_non_default_values = true);
+  HighsStatus writeOptions(const std::string filename,  //!< The filename
+                           const bool report_only_non_default_values = true);
 
   /**
    * @brief Gets an option value as int/double, and only if it's of the correct
    * type.
    */
 
-  const HighsInfo& getHighsInfo() const;
+  const HighsInfo& getInfo() const;
 
-  HighsStatus getHighsInfoValue(const std::string& info,  //!< The info name
-                                HighsInt& value           //!< The info value
+  HighsStatus getInfoValue(const std::string& info,  //!< The info name
+                           HighsInt& value           //!< The info value
   );
 
-  HighsStatus getHighsInfoValue(const std::string& info,  //!< The info name
-                                double& value) const;     //!< The info value
+  HighsStatus getInfoValue(const std::string& info,  //!< The info name
+                           double& value) const;     //!< The info value
 
-  HighsStatus writeHighsInfo(const std::string filename  //!< The filename
+  HighsStatus writeInfo(const std::string filename  //!< The filename
   );
   /**
    * Methods for model output
@@ -476,6 +465,46 @@ class Highs {
   );
 
   /**
+   * @brief Change the integrality of a column
+   */
+  bool changeColIntegrality(
+      const HighsInt
+          col,  //!< The index of the column whose integrality is to change
+      const HighsVarType integrality  //!< The new integrality
+  );
+
+  /**
+   * @brief Change the integrality of multiple columns given by an interval
+   */
+  bool changeColsIntegrality(
+      const HighsInt from_col,  //!< The index of the first column whose
+                                //!< integrality changes
+      const HighsInt to_col,    //!< One more than the index of the last column
+                                //!< whose integrality changes
+      const HighsVarType*
+          integrality  //!< Array of size num_set_entries with new integrality
+  );
+
+  /**
+   * @brief Change the integrality of multiple columns given by a set of indices
+   */
+  bool changeColsIntegrality(
+      const HighsInt num_set_entries,  //!< The number of indides in the set
+      const HighsInt* set,  //!< Array of size num_set_entries with indices of
+                            //!< columns whose integralitys change
+      const HighsVarType*
+          integrality  //!< Array of size num_set_entries with new integrality
+  );
+
+  /**
+   * @brief Change the integrality of multiple columns given by a mask
+   */
+  bool changeColsIntegrality(
+      const HighsInt* mask,  //!< Full length array with 1 => change; 0 => not
+      const HighsVarType* integrality  //!< Full length array of new integrality
+  );
+
+  /**
    * @brief Change the cost of a column
    */
   bool changeColCost(
@@ -762,12 +791,12 @@ class Highs {
   /**
    * @brief Gets the value of infinity used by HiGHS
    */
-  double getHighsInfinity();
+  double getInfinity();
 
   /**
    * @brief Gets the run time of HiGHS
    */
-  double getHighsRunTime();
+  double getRunTime();
   /**
    * @brief Clear data associated with solving the model: basis, solution and
    * internal data etc
@@ -800,6 +829,74 @@ class Highs {
       const bool value            //!< The option value
   );
 
+  HighsStatus setHighsOptionValue(
+      const std::string& option,  //!< The option name
+      const HighsInt value        //!< The option value
+  );
+
+#ifdef HIGHSINT64
+  HighsStatus setHighsOptionValue(
+      const std::string& option,  //!< The option name
+      const int value             //!< The option value
+  ) {
+    return setHighsOptionValue(option, HighsInt{value});
+  }
+#endif
+
+  HighsStatus setHighsOptionValue(
+      const std::string& option,  //!< The option name
+      const double value          //!< The option value
+  );
+
+  HighsStatus setHighsOptionValue(
+      const std::string& option,  //!< The option name
+      const std::string value     //!< The option value
+  );
+
+  HighsStatus setHighsOptionValue(
+      const std::string& option,  //!< The option name
+      const char* value           //!< The option value
+  );
+
+  HighsStatus readHighsOptions(const std::string filename  //!< The filename
+  );
+
+  HighsStatus passHighsOptions(const HighsOptions& options  //!< The options
+  );
+
+  HighsStatus getHighsOptionValue(
+      const std::string& option,  //!< The option name
+      bool& value                 //!< The option value
+  );
+
+  HighsStatus getHighsOptionValue(
+      const std::string& option,  //!< The option name
+      HighsInt& value             //!< The option value
+  );
+
+  HighsStatus getHighsOptionValue(
+      const std::string& option,  //!< The option name
+      double& value               //!< The option value
+  );
+
+  HighsStatus getHighsOptionValue(
+      const std::string& option,  //!< The option name
+      std::string& value          //!< The option value
+  );
+
+  HighsStatus getHighsOptionType(
+      const std::string& option,  //!< The option name
+      HighsOptionType& type       //!< The option type
+  );
+
+  const HighsOptions& getHighsOptions() const;
+
+  HighsStatus resetHighsOptions();
+
+  HighsStatus writeHighsOptions(
+      const std::string filename,  //!< The filename
+      const bool report_only_non_default_values = true);
+
   double getObjectiveValue() { return info_.objective_function_value; }
 
   HighsInt getSimplexIterationCount() { return info_.simplex_iteration_count; }
@@ -807,6 +904,22 @@ class Highs {
   HighsStatus setHighsLogfile(FILE* logfile = NULL);
 
   HighsStatus setHighsOutput(FILE* output = NULL);
+
+  const HighsInfo& getHighsInfo() const;
+
+  HighsStatus getHighsInfoValue(const std::string& info,  //!< The info name
+                                HighsInt& value           //!< The info value
+  );
+
+  HighsStatus getHighsInfoValue(const std::string& info,  //!< The info name
+                                double& value) const;     //!< The info value
+
+  HighsStatus writeHighsInfo(const std::string filename  //!< The filename
+  );
+
+  double getHighsInfinity();
+
+  double getHighsRunTime();
   // End of deprecated methods
  private:
   HighsSolution solution_;
@@ -905,6 +1018,8 @@ class Highs {
                                       double& value);
 
   HighsStatus changeObjectiveSenseInterface(const ObjSense Xsense);
+  HighsStatus changeIntegralityInterface(HighsIndexCollection& index_collection,
+                                         const HighsVarType* usr_inegrality);
   HighsStatus changeCostsInterface(HighsIndexCollection& index_collection,
                                    const double* usr_col_cost);
   HighsStatus changeColBoundsInterface(HighsIndexCollection& index_collection,

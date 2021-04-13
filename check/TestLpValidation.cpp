@@ -10,7 +10,6 @@ TEST_CASE("LP-validation", "[highs_data]") {
   // Create an empty LP
   HighsLp lp;
   HighsOptions options;
-  //  HighsTimer timer;
   HighsStatus return_status;
   bool return_bool;
   options.log_dev_level = LOG_DEV_LEVEL_VERBOSE;
@@ -51,7 +50,7 @@ TEST_CASE("LP-validation", "[highs_data]") {
 
   const double my_infinity = 1e30;
   Highs highs;
-  highs.passHighsOptions(options);
+  highs.passOptions(options);
 
   REQUIRE(highs.passModel(lp) == HighsStatus::OK);
   return_bool =
@@ -195,7 +194,7 @@ TEST_CASE("LP-validation", "[highs_data]") {
   REQUIRE(return_bool);
 
   if (!dev_run) {
-    highs.setHighsOptionValue("output_flag", false);
+    highs.setOptionValue("output_flag", false);
   }
 
   const HighsLp& internal_lp = highs.getLp();
@@ -228,7 +227,7 @@ TEST_CASE("LP-validation", "[highs_data]") {
 
   // Without presolve LP is found primal unbounded! ToDo: Fix this to be
   // infeasible
-  highs.setHighsOptionValue("presolve", "off");
+  highs.setOptionValue("presolve", "off");
   run_status = highs.run();
   REQUIRE(run_status == HighsStatus::OK);
 

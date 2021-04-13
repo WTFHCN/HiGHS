@@ -119,7 +119,6 @@ void testBasisRestart(Highs& highs, const bool from_file) {
 
 // No commas in test case name.
 TEST_CASE("Basis-file", "[highs_basis_file]") {
-  //  HighsOptions options;
   HighsStatus return_status;
   std::string model0_file =
       std::string(HIGHS_DIR) + "/check/instances/adlittle.mps";
@@ -128,7 +127,7 @@ TEST_CASE("Basis-file", "[highs_basis_file]") {
 
   Highs highs;
   if (!dev_run) {
-    highs.setHighsOptionValue("output_flag", false);
+    highs.setOptionValue("output_flag", false);
   }
   assert(model0_file != model1_file);
 
@@ -196,7 +195,7 @@ TEST_CASE("Basis-data", "[highs_basis_data]") {
 
   Highs highs;
   if (!dev_run) {
-    highs.setHighsOptionValue("output_flag", false);
+    highs.setOptionValue("output_flag", false);
   }
   assert(model0_file != model1_file);
 

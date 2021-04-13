@@ -153,52 +153,48 @@ HighsInt Highs_clearModel(void* highs) {
 HighsInt Highs_setBoolOptionValue(void* highs, const char* option,
                                   const HighsInt value) {
   return (HighsInt)((Highs*)highs)
-      ->setHighsOptionValue(std::string(option), (bool)value);
+      ->setOptionValue(std::string(option), (bool)value);
 }
 
 HighsInt Highs_setIntOptionValue(void* highs, const char* option,
                                  const HighsInt value) {
-  return (HighsInt)((Highs*)highs)
-      ->setHighsOptionValue(std::string(option), value);
+  return (HighsInt)((Highs*)highs)->setOptionValue(std::string(option), value);
 }
 
 HighsInt Highs_setDoubleOptionValue(void* highs, const char* option,
                                     const double value) {
-  return (HighsInt)((Highs*)highs)
-      ->setHighsOptionValue(std::string(option), value);
+  return (HighsInt)((Highs*)highs)->setOptionValue(std::string(option), value);
 }
 
 HighsInt Highs_setStringOptionValue(void* highs, const char* option,
                                     const char* value) {
   return (HighsInt)((Highs*)highs)
-      ->setHighsOptionValue(std::string(option), std::string(value));
+      ->setOptionValue(std::string(option), std::string(value));
 }
 
 HighsInt Highs_setOptionValue(void* highs, const char* option,
                               const char* value) {
   return (HighsInt)((Highs*)highs)
-      ->setHighsOptionValue(std::string(option), std::string(value));
+      ->setOptionValue(std::string(option), std::string(value));
 }
 
 HighsInt Highs_getBoolOptionValue(void* highs, const char* option,
                                   HighsInt* value) {
   bool v;
   HighsInt retcode =
-      (HighsInt)((Highs*)highs)->getHighsOptionValue(std::string(option), v);
+      (HighsInt)((Highs*)highs)->getOptionValue(std::string(option), v);
   *value = (HighsInt)v;
   return retcode;
 }
 
 HighsInt Highs_getIntOptionValue(void* highs, const char* option,
                                  HighsInt* value) {
-  return (HighsInt)((Highs*)highs)
-      ->getHighsOptionValue(std::string(option), *value);
+  return (HighsInt)((Highs*)highs)->getOptionValue(std::string(option), *value);
 }
 
 HighsInt Highs_getDoubleOptionValue(void* highs, const char* option,
                                     double* value) {
-  return (HighsInt)((Highs*)highs)
-      ->getHighsOptionValue(std::string(option), *value);
+  return (HighsInt)((Highs*)highs)->getOptionValue(std::string(option), *value);
 }
 
 HighsInt Highs_getStringOptionValue(void* highs, const char* option,
@@ -206,7 +202,7 @@ HighsInt Highs_getStringOptionValue(void* highs, const char* option,
   std::string v;
   memset(value, 0, 7);
   HighsInt retcode =
-      (HighsInt)((Highs*)highs)->getHighsOptionValue(std::string(option), v);
+      (HighsInt)((Highs*)highs)->getOptionValue(std::string(option), v);
   strcpy(value, v.c_str());
   return retcode;
 }
@@ -214,22 +210,22 @@ HighsInt Highs_getStringOptionValue(void* highs, const char* option,
 HighsInt Highs_getOptionType(void* highs, const char* option, HighsInt* type) {
   HighsOptionType t;
   HighsInt retcode =
-      (HighsInt)((Highs*)highs)->getHighsOptionType(std::string(option), t);
+      (HighsInt)((Highs*)highs)->getOptionType(std::string(option), t);
   *type = (HighsInt)t;
   return retcode;
 }
 
 HighsInt Highs_resetOptions(void* highs) {
-  return (HighsInt)((Highs*)highs)->resetHighsOptions();
+  return (HighsInt)((Highs*)highs)->resetOptions();
 }
 
 HighsInt Highs_getIntInfoValue(void* highs, const char* info, HighsInt* value) {
-  return (HighsInt)((Highs*)highs)->getHighsInfoValue(info, *value);
+  return (HighsInt)((Highs*)highs)->getInfoValue(info, *value);
 }
 
 HighsInt Highs_getDoubleInfoValue(void* highs, const char* info,
                                   double* value) {
-  return (HighsInt)((Highs*)highs)->getHighsInfoValue(info, *value);
+  return (HighsInt)((Highs*)highs)->getInfoValue(info, *value);
 }
 
 void Highs_getSolution(void* highs, double* colvalue, double* coldual,
@@ -341,37 +337,41 @@ HighsInt Highs_setBasis(void* highs, const HighsInt* colstatus,
                         const HighsInt* rowstatus) {
   HighsBasis basis;
   const HighsInt num_col = Highs_getNumCols(highs);
-  basis.col_status.resize(num_col);
-  for (HighsInt i = 0; i < num_col; i++) {
-    if (colstatus[i] == (HighsInt)HighsBasisStatus::LOWER) {
-      basis.col_status[i] = HighsBasisStatus::LOWER;
-    } else if (colstatus[i] == (HighsInt)HighsBasisStatus::BASIC) {
-      basis.col_status[i] = HighsBasisStatus::BASIC;
-    } else if (colstatus[i] == (HighsInt)HighsBasisStatus::UPPER) {
-      basis.col_status[i] = HighsBasisStatus::UPPER;
-    } else if (colstatus[i] == (HighsInt)HighsBasisStatus::ZERO) {
-      basis.col_status[i] = HighsBasisStatus::ZERO;
-    } else if (colstatus[i] == (HighsInt)HighsBasisStatus::NONBASIC) {
-      basis.col_status[i] = HighsBasisStatus::NONBASIC;
-    } else {
-      return (HighsInt)HighsStatus::Error;
+  if (num_col > 0) {
+    basis.col_status.resize(num_col);
+    for (HighsInt i = 0; i < num_col; i++) {
+      if (colstatus[i] == (HighsInt)HighsBasisStatus::LOWER) {
+        basis.col_status[i] = HighsBasisStatus::LOWER;
+      } else if (colstatus[i] == (HighsInt)HighsBasisStatus::BASIC) {
+        basis.col_status[i] = HighsBasisStatus::BASIC;
+      } else if (colstatus[i] == (HighsInt)HighsBasisStatus::UPPER) {
+        basis.col_status[i] = HighsBasisStatus::UPPER;
+      } else if (colstatus[i] == (HighsInt)HighsBasisStatus::ZERO) {
+        basis.col_status[i] = HighsBasisStatus::ZERO;
+      } else if (colstatus[i] == (HighsInt)HighsBasisStatus::NONBASIC) {
+        basis.col_status[i] = HighsBasisStatus::NONBASIC;
+      } else {
+        return (HighsInt)HighsStatus::Error;
+      }
     }
   }
   const HighsInt num_row = Highs_getNumRows(highs);
-  basis.row_status.resize(num_row);
-  for (HighsInt i = 0; i < num_row; i++) {
-    if (rowstatus[i] == (HighsInt)HighsBasisStatus::LOWER) {
-      basis.row_status[i] = HighsBasisStatus::LOWER;
-    } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::BASIC) {
-      basis.row_status[i] = HighsBasisStatus::BASIC;
-    } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::UPPER) {
-      basis.row_status[i] = HighsBasisStatus::UPPER;
-    } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::ZERO) {
-      basis.row_status[i] = HighsBasisStatus::ZERO;
-    } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::NONBASIC) {
-      basis.row_status[i] = HighsBasisStatus::NONBASIC;
-    } else {
-      return (HighsInt)HighsStatus::Error;
+  if (num_row > 0) {
+    basis.row_status.resize(num_row);
+    for (HighsInt i = 0; i < num_row; i++) {
+      if (rowstatus[i] == (HighsInt)HighsBasisStatus::LOWER) {
+        basis.row_status[i] = HighsBasisStatus::LOWER;
+      } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::BASIC) {
+        basis.row_status[i] = HighsBasisStatus::BASIC;
+      } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::UPPER) {
+        basis.row_status[i] = HighsBasisStatus::UPPER;
+      } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::ZERO) {
+        basis.row_status[i] = HighsBasisStatus::ZERO;
+      } else if (rowstatus[i] == (HighsInt)HighsBasisStatus::NONBASIC) {
+        basis.row_status[i] = HighsBasisStatus::NONBASIC;
+      } else {
+        return (HighsInt)HighsStatus::Error;
+      }
     }
   }
   return (HighsInt)((Highs*)highs)->setBasis(basis);
@@ -382,7 +382,7 @@ HighsInt Highs_setLogicalBasis(void* highs) {
 }
 
 double Highs_getRunTime(void* highs) {
-  return (double)((Highs*)highs)->getHighsRunTime();
+  return (double)((Highs*)highs)->getRunTime();
 }
 
 HighsInt Highs_addRow(void* highs, const double lower, const double upper,
@@ -422,8 +422,57 @@ HighsInt Highs_changeObjectiveSense(void* highs, const HighsInt sense) {
   return ((Highs*)highs)->changeObjectiveSense(pass_sense);
 }
 
-HighsInt Highs_changeColsCost(void* highs, const HighsInt col,
-                              const double cost) {
+HighsInt Highs_changeColIntegrality(void* highs, const HighsInt col,
+                                    const HighsInt integrality) {
+  return ((Highs*)highs)->changeColIntegrality(col, (HighsVarType)integrality);
+}
+
+HighsInt Highs_changeColsIntegralityByRange(void* highs,
+                                            const HighsInt from_col,
+                                            const HighsInt to_col,
+                                            const HighsInt* integrality) {
+  vector<HighsVarType> pass_integrality;
+  HighsInt num_ix = to_col - from_col + 1;
+  if (num_ix > 0) {
+    pass_integrality.resize(num_ix);
+    for (HighsInt ix = 0; ix < num_ix; ix++) {
+      pass_integrality[ix] = (HighsVarType)integrality[ix];
+    }
+  }
+  return ((Highs*)highs)
+      ->changeColsIntegrality(from_col, to_col, &pass_integrality[0]);
+}
+
+HighsInt Highs_changeColsIntegralityBySet(void* highs,
+                                          const HighsInt num_set_entries,
+                                          const HighsInt* set,
+                                          const HighsInt* integrality) {
+  vector<HighsVarType> pass_integrality;
+  if (num_set_entries > 0) {
+    pass_integrality.resize(num_set_entries);
+    for (HighsInt ix = 0; ix < num_set_entries; ix++) {
+      pass_integrality[ix] = (HighsVarType)integrality[ix];
+    }
+  }
+  return ((Highs*)highs)
+      ->changeColsIntegrality(num_set_entries, set, &pass_integrality[0]);
+}
+
+HighsInt Highs_changeColsIntegralityByMask(void* highs, const HighsInt* mask,
+                                           const HighsInt* integrality) {
+  const HighsInt num_col = Highs_getNumCols(highs);
+  vector<HighsVarType> pass_integrality;
+  if (num_col > 0) {
+    pass_integrality.resize(num_col);
+    for (HighsInt iCol = 0; iCol < num_col; iCol++) {
+      pass_integrality[iCol] = (HighsVarType)integrality[iCol];
+    }
+  }
+  return ((Highs*)highs)->changeColsIntegrality(mask, &pass_integrality[0]);
+}
+
+HighsInt Highs_changeColCost(void* highs, const HighsInt col,
+                             const double cost) {
   return ((Highs*)highs)->changeColCost(col, cost);
 }
 
@@ -612,9 +661,7 @@ HighsInt Highs_deleteRowsByMask(void* highs, HighsInt* mask) {
   return ((Highs*)highs)->deleteRows(mask);
 }
 
-double Highs_getInfinity(void* highs) {
-  return ((Highs*)highs)->getHighsInfinity();
-}
+double Highs_getInfinity(void* highs) { return ((Highs*)highs)->getInfinity(); }
 
 HighsInt Highs_getNumCols(void* highs) {
   return ((Highs*)highs)->getLp().numCol_;
@@ -670,15 +717,15 @@ HighsInt Highs_call(const HighsInt numcol, const HighsInt numrow,
 }
 
 HighsInt Highs_runQuiet(void* highs) {
-  return (HighsInt)((Highs*)highs)->setHighsOptionValue("output_flag", false);
+  return (HighsInt)((Highs*)highs)->setOptionValue("output_flag", false);
 }
 
 HighsInt Highs_setHighsLogfile(void* highs, void* logfile) {
-  return (HighsInt)((Highs*)highs)->setHighsOptionValue("output_flag", false);
+  return (HighsInt)((Highs*)highs)->setOptionValue("output_flag", false);
 }
 
 HighsInt Highs_setHighsOutput(void* highs, void* outputfile) {
-  return (HighsInt)((Highs*)highs)->setHighsOptionValue("output_flag", false);
+  return (HighsInt)((Highs*)highs)->setOptionValue("output_flag", false);
 }
 
 HighsInt Highs_getIterationCount(void* highs) {

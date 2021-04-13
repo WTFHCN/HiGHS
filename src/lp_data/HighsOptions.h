@@ -155,72 +155,68 @@ OptionStatus checkOptionValue(const HighsLogOptions& log_options,
                               std::vector<OptionRecord*>& option_records,
                               const std::string value);
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const bool value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const bool value);
 
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const HighsInt value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const HighsInt value);
 #ifdef HIGHSINT64
-inline OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                                   const std::string& name,
-                                   std::vector<OptionRecord*>& option_records,
-                                   const int value) {
-  return setOptionValue(log_options, name, option_records, HighsInt{value});
+inline OptionStatus setLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    std::vector<OptionRecord*>& option_records, const int value) {
+  return setLocalOptionValue(log_options, name, option_records,
+                             HighsInt{value});
 }
 #endif
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const double value);
-OptionStatus setOptionValue(HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const std::string value);
-OptionStatus setOptionValue(HighsLogOptions& log_options,
-                            const std::string& name,
-                            std::vector<OptionRecord*>& option_records,
-                            const char* value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const double value);
+OptionStatus setLocalOptionValue(HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const std::string value);
+OptionStatus setLocalOptionValue(HighsLogOptions& log_options,
+                                 const std::string& name,
+                                 std::vector<OptionRecord*>& option_records,
+                                 const char* value);
 
-OptionStatus setOptionValue(OptionRecordBool& option, const bool value);
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordInt& option, const HighsInt value);
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordDouble& option, const double value);
-OptionStatus setOptionValue(const HighsLogOptions& log_options,
-                            OptionRecordString& option,
-                            std::string const value);
+OptionStatus setLocalOptionValue(OptionRecordBool& option, const bool value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordInt& option, const HighsInt value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordDouble& option,
+                                 const double value);
+OptionStatus setLocalOptionValue(const HighsLogOptions& log_options,
+                                 OptionRecordString& option,
+                                 std::string const value);
 
-OptionStatus passOptions(const HighsLogOptions& log_options,
-                         const HighsOptions& from_options,
-                         HighsOptions& to_options);
+OptionStatus passLocalOptions(const HighsLogOptions& log_options,
+                              const HighsOptions& from_options,
+                              HighsOptions& to_options);
 
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            bool& value);
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            HighsInt& value);
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            double& value);
-OptionStatus getOptionValue(const HighsLogOptions& log_options,
-                            const std::string& name,
-                            const std::vector<OptionRecord*>& option_records,
-                            std::string& value);
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, bool& value);
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, HighsInt& value);
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, double& value);
+OptionStatus getLocalOptionValue(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, std::string& value);
 
-OptionStatus getOptionType(const HighsLogOptions& log_options,
-                           const std::string& name,
-                           const std::vector<OptionRecord*>& option_records,
-                           HighsOptionType& type);
+OptionStatus getLocalOptionType(
+    const HighsLogOptions& log_options, const std::string& name,
+    const std::vector<OptionRecord*>& option_records, HighsOptionType& type);
 
-void resetOptions(std::vector<OptionRecord*>& option_records);
+void resetLocalOptions(std::vector<OptionRecord*>& option_records);
 
 HighsStatus writeOptionsToFile(FILE* file,
                                const std::vector<OptionRecord*>& option_records,

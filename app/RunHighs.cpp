@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
   bool options_ok = loadOptions(argc, argv, options);
   if (!options_ok) return 0;
   Highs highs;
-  //  highs.setHighsOptionValue("log_dev_level", 1);
+  //  highs.setOptionValue("log_dev_level", 1);
   HighsStatus read_status = highs.readModel(options.model_file);
   reportLpStatsOrError(options.log_options, read_status, highs.getLp());
   if (read_status == HighsStatus::Error)
@@ -139,7 +139,7 @@ void reportSolvedLpStats(const HighsLogOptions& log_options,
     highsLogUser(log_options, HighsLogType::INFO, "\n");
     HighsModelStatus model_status = highs.getModelStatus();
     HighsModelStatus scaled_model_status = highs.getModelStatus(true);
-    HighsInfo highs_info = highs.getHighsInfo();
+    HighsInfo highs_info = highs.getInfo();
     if (model_status != scaled_model_status) {
       if (scaled_model_status == HighsModelStatus::OPTIMAL) {
         // The scaled model has been solved to optimality, but not the
@@ -177,16 +177,15 @@ void reportSolvedLpStats(const HighsLogOptions& log_options,
                    highs_info.crossover_iteration_count);
     if (model_status == HighsModelStatus::OPTIMAL) {
       double objective_function_value;
-      highs.getHighsInfoValue("objective_function_value",
-                              objective_function_value);
+      highs.getInfoValue("objective_function_value", objective_function_value);
       highsLogUser(log_options, HighsLogType::INFO,
                    "Objective value     : %17.10e\n", objective_function_value);
     }
-    double run_time = highs.getHighsRunTime();
+    double run_time = highs.getRunTime();
     highsLogUser(log_options, HighsLogType::INFO,
                  "HiGHS run time      : %13.2f\n", run_time);
     // Possibly write the solution to a file
-    const HighsOptions& options = highs.getHighsOptions();
+    const HighsOptions& options = highs.getOptions();
     if (options.write_solution_to_file)
       highs.writeSolution(options.solution_file, options.write_solution_pretty);
   }
@@ -195,8 +194,8 @@ void reportSolvedLpStats(const HighsLogOptions& log_options,
 HighsStatus callLpSolver(HighsOptions& use_options, const HighsLp& lp) {
   // Solve LP case.
   Highs highs;
-  highs.passHighsOptions(use_options);
-  //  const HighsOptions& options = highs.getHighsOptions();
+  highs.passOptions(use_options);
+  //  const HighsOptions& options = highs.getOptions();
 
   // Load problem.
   highs.passModel(lp);
@@ -208,7 +207,7 @@ HighsStatus callLpSolver(HighsOptions& use_options, const HighsLp& lp) {
   highs.setBasis();
   HighsStatus run_status = highs.run();
 
-  if (highs.getHighsInfo().mip_node_count == -1)
+  if (highs.getInfo().mip_node_count == -1)
     reportSolvedLpStats(use_options.log_options, run_status, highs);
   //  HighsRanging ranging; highs.getRanging(ranging);
   //  highs.writeSolution("", true);

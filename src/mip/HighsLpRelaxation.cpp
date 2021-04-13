@@ -102,13 +102,12 @@ double HighsLpRelaxation::slackUpper(HighsInt row) const {
 
 HighsLpRelaxation::HighsLpRelaxation(const HighsMipSolver& mipsolver)
     : mipsolver(mipsolver) {
-  lpsolver.setHighsOptionValue("output_flag", false);
-  lpsolver.setHighsOptionValue("highs_random_seed",
-                               mipsolver.options_mip_->highs_random_seed);
-  lpsolver.setHighsOptionValue(
-      "primal_feasibility_tolerance",
-      mipsolver.options_mip_->mip_feasibility_tolerance);
-  lpsolver.setHighsOptionValue(
+  lpsolver.setOptionValue("output_flag", false);
+  lpsolver.setOptionValue("highs_random_seed",
+                          mipsolver.options_mip_->highs_random_seed);
+  lpsolver.setOptionValue("primal_feasibility_tolerance",
+                          mipsolver.options_mip_->mip_feasibility_tolerance);
+  lpsolver.setOptionValue(
       "dual_feasibility_tolerance",
       mipsolver.options_mip_->mip_feasibility_tolerance * 0.1);
   status = Status::NotSet;
@@ -128,8 +127,8 @@ HighsLpRelaxation::HighsLpRelaxation(const HighsLpRelaxation& other)
       objective(other.objective),
       basischeckpoint(other.basischeckpoint),
       currentbasisstored(other.currentbasisstored) {
-  lpsolver.setHighsOptionValue("output_flag", false);
-  lpsolver.passHighsOptions(other.lpsolver.getHighsOptions());
+  lpsolver.setOptionValue("output_flag", false);
+  lpsolver.passOptions(other.lpsolver.getOptions());
   lpsolver.passModel(other.lpsolver.getLp());
   lpsolver.setBasis(other.lpsolver.getBasis());
   mask.resize(mipsolver.numCol());
@@ -563,8 +562,7 @@ void HighsLpRelaxation::storeDualUBProof() {
 
   assert(scale == 1.0);
 
-  HighsCDouble upper =
-      lpsolver.getHighsOptions().dual_objective_value_upper_bound;
+  HighsCDouble upper = lpsolver.getOptions().dual_objective_value_upper_bound;
   for (HighsInt i = 0; i != lp.numRow_; ++i) {
     if (dualray[i] == 0.0) continue;
 
@@ -668,9 +666,8 @@ void HighsLpRelaxation::recoverBasis() {
 HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
   HighsStatus callstatus;
 
-  lpsolver.setHighsOptionValue(
-      "time_limit", lpsolver.getHighsRunTime() +
-                        mipsolver.options_mip_->time_limit -
+  lpsolver.setOptionValue(
+      "time_limit", lpsolver.getRunTime() + mipsolver.options_mip_->time_limit -
                         mipsolver.timer_.read(mipsolver.timer_.solve_clock));
 
   try {
@@ -679,7 +676,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
     callstatus = HighsStatus::Error;
   }
 
-  const HighsInfo& info = lpsolver.getHighsInfo();
+  const HighsInfo& info = lpsolver.getInfo();
   HighsInt itercount = std::max(HighsInt{0}, info.simplex_iteration_count);
   numlpiters += itercount;
 
@@ -687,11 +684,11 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
     lpsolver.clearSolver();
 #if 0
     // first try to use the primal simplex solver starting from the last basis
-    if (lpsolver.getHighsOptions().simplex_strategy == SIMPLEX_STRATEGY_DUAL) {
-      lpsolver.setHighsOptionValue("simplex_strategy", SIMPLEX_STRATEGY_PRIMAL);
+    if (lpsolver.getOptions().simplex_strategy == SIMPLEX_STRATEGY_DUAL) {
+      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_PRIMAL);
       recoverBasis();
       auto retval = run(resolve_on_error);
-      lpsolver.setHighsOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
+      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
 
       return retval;
     }
@@ -699,10 +696,10 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
 
     if (resolve_on_error) {
       // still an error: now try to solve with presolve from scratch
-      lpsolver.setHighsOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
-      lpsolver.setHighsOptionValue("presolve", "on");
+      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
+      lpsolver.setOptionValue("presolve", "on");
       auto retval = run(false);
-      lpsolver.setHighsOptionValue("presolve", "off");
+      lpsolver.setOptionValue("presolve", "off");
 
       return retval;
     }
@@ -728,16 +725,15 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
       if (checkDualProof()) return Status::Infeasible;
       hasdualproof = false;
 
-      HighsInt scalestrategy =
-          lpsolver.getHighsOptions().simplex_scale_strategy;
+      HighsInt scalestrategy = lpsolver.getOptions().simplex_scale_strategy;
       if (scalestrategy != SIMPLEX_SCALE_STRATEGY_OFF) {
-        lpsolver.setHighsOptionValue("simplex_scale_strategy",
-                                     SIMPLEX_SCALE_STRATEGY_OFF);
+        lpsolver.setOptionValue("simplex_scale_strategy",
+                                SIMPLEX_SCALE_STRATEGY_OFF);
         HighsBasis basis = lpsolver.getBasis();
         lpsolver.clearSolver();
         lpsolver.setBasis(basis);
         auto tmp = run(resolve_on_error);
-        lpsolver.setHighsOptionValue("simplex_scale_strategy", scalestrategy);
+        lpsolver.setOptionValue("simplex_scale_strategy", scalestrategy);
         if (!scaledOptimal(tmp)) {
           lpsolver.clearSolver();
           lpsolver.setBasis(basis);
@@ -774,16 +770,15 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
         //     "error: optimal with unscaled infeasibilities (primal:%g, "
         //     "dual:%g)\n",
         //     info.max_primal_infeasibility, info.max_dual_infeasibility);
-        HighsInt scalestrategy =
-            lpsolver.getHighsOptions().simplex_scale_strategy;
+        HighsInt scalestrategy = lpsolver.getOptions().simplex_scale_strategy;
         if (scalestrategy != SIMPLEX_SCALE_STRATEGY_OFF) {
-          lpsolver.setHighsOptionValue("simplex_scale_strategy",
-                                       SIMPLEX_SCALE_STRATEGY_OFF);
+          lpsolver.setOptionValue("simplex_scale_strategy",
+                                  SIMPLEX_SCALE_STRATEGY_OFF);
           HighsBasis basis = lpsolver.getBasis();
           lpsolver.clearSolver();
           lpsolver.setBasis(basis);
           auto tmp = run(resolve_on_error);
-          lpsolver.setHighsOptionValue("simplex_scale_strategy", scalestrategy);
+          lpsolver.setOptionValue("simplex_scale_strategy", scalestrategy);
           return tmp;
         }
       }
@@ -802,12 +797,12 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
         //     "from ipm\n");
         Highs ipm;
         ipm.passModel(lpsolver.getLp());
-        ipm.setHighsOptionValue("solver", "ipm");
-        ipm.setHighsOptionValue("output_flag", false);
+        ipm.setOptionValue("solver", "ipm");
+        ipm.setOptionValue("output_flag", false);
         // todo @ Julian : If you remove this you can see the looping on
         // istanbul-no-cutoff
-        ipm.setHighsOptionValue("simplex_iteration_limit",
-                                info.simplex_iteration_count);
+        ipm.setOptionValue("simplex_iteration_limit",
+                           info.simplex_iteration_count);
         ipm.run();
         lpsolver.setBasis(ipm.getBasis());
         return run(false);
