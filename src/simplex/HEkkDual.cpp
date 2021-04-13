@@ -1138,7 +1138,7 @@ void HEkkDual::iterate() {
                                   .dual_simplex_cost_perturbation_multiplier,
                           1.0));
     double oldCost = ekk_instance_.simplex_info_.workCost_[variable_in];
-    ekk_instance_.initialiseCost(SimplexAlgorithm::DUAL, solvePhase, true);
+    ekk_instance_.initialiseCost(SimplexAlgorithm::kDual, solvePhase, true);
     // perturb the chosen column to have zero dual in the current solution
     // this seems to considerably improve cycling behavior even though more
     // primal simplex iterations may be required in the cleanup phase
