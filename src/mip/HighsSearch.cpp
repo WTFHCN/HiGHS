@@ -381,15 +381,17 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters) {
           double otherupval = std::ceil(fracints[k].second);
           if (sol[fracints[k].first] <=
               otherdownval + mipsolver.mipdata_->feastol) {
-            if (localdom.colUpper_[fracints[k].first] <=
-                otherdownval + mipsolver.mipdata_->feastol)
+            if (objdelta <= minScore &&
+                localdom.colUpper_[fracints[k].first] <=
+                    otherdownval + mipsolver.mipdata_->feastol)
               pseudocost.addObservation(fracints[k].first,
                                         otherdownval - otherfracval, objdelta);
             downscore[k] = std::min(downscore[k], objdelta);
           } else if (sol[fracints[k].first] >=
                      otherupval - mipsolver.mipdata_->feastol) {
-            if (localdom.colLower_[fracints[k].first] >=
-                otherupval - mipsolver.mipdata_->feastol)
+            if (objdelta <= minScore &&
+                localdom.colLower_[fracints[k].first] >=
+                    otherupval - mipsolver.mipdata_->feastol)
               pseudocost.addObservation(fracints[k].first,
                                         otherupval - otherfracval, objdelta);
             upscore[k] = std::min(upscore[k], objdelta);
@@ -503,16 +505,18 @@ HighsInt HighsSearch::selectBranchingCandidate(int64_t maxSbIters) {
           double otherupval = std::ceil(fracints[k].second);
           if (sol[fracints[k].first] <=
               otherdownval + mipsolver.mipdata_->feastol) {
-            if (localdom.colUpper_[fracints[k].first] <=
-                otherdownval + mipsolver.mipdata_->feastol)
+            if (objdelta <= minScore &&
+                localdom.colUpper_[fracints[k].first] <=
+                    otherdownval + mipsolver.mipdata_->feastol)
               pseudocost.addObservation(fracints[k].first,
                                         otherdownval - otherfracval, objdelta);
             downscore[k] = std::min(downscore[k], objdelta);
 
           } else if (sol[fracints[k].first] >=
                      otherupval - mipsolver.mipdata_->feastol) {
-            if (localdom.colLower_[fracints[k].first] >=
-                otherupval - mipsolver.mipdata_->feastol)
+            if (objdelta <= minScore &&
+                localdom.colLower_[fracints[k].first] >=
+                    otherupval - mipsolver.mipdata_->feastol)
               pseudocost.addObservation(fracints[k].first,
                                         otherupval - otherfracval, objdelta);
             upscore[k] = std::min(upscore[k], objdelta);
