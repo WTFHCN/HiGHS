@@ -37,12 +37,9 @@ using std::string;
 
 enum class HighsPostsolveStatus {
   kNotPresolved = -1,
-  //  ReducedSolutionEmpty,
   kReducedSolutionDimenionsError,
   kSolutionRecovered,
-  //  LpOrPresolveObjectMissing,
   kBasisError
-  //  NoPostsolve
 };
 
 enum class HighsPresolveStatus {
@@ -159,20 +156,20 @@ class Presolve : public HPreData {
 
   PresolveTimer timer;  // holds enum for main presolve rules
 
-  enum stat {
-    Unset = 0,
-    Infeasible = 1,
-    Unbounded = 2,
-    Empty = 3,
-    Optimal = 4,
-    Reduced = 5,
-    Timeout = 6,
+  enum Stat {
+    kUnset = 0,
+    kInfeasible = 1,
+    kUnbounded = 2,
+    kEmpty = 3,
+    kOptimal = 4,
+    kReduced = 5,
+    kTimeout = 6,
   };
 
  private:
   bool mip;
   bool hasChange = true;
-  HighsInt status = 0;  // 0 is unassigned, see enum stat
+  HighsInt status = Stat::kUnset;
 
   list<HighsInt> singRow;  // singleton rows
   list<HighsInt> singCol;  // singleton columns
