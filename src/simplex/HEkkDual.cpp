@@ -1101,7 +1101,7 @@ void HEkkDual::iterate() {
                                        // one so that a single occurence of a
                                        // cycle or a false positive does not
                                        // lead to an immediate error
-      solvePhase == SOLVE_PHASE_2 &&
+      solvePhase == kSolvePhase2 &&
       ekk_instance_.visited_basis_.size() > 1 &&
       ekk_instance_.checkForCycling(variable_in, row_out)) {
     printf("cycling detected\n");
@@ -1150,7 +1150,7 @@ void HEkkDual::iterate() {
     ekk_instance_.visited_basis_.clear();
     ekk_instance_.visited_basis_.insert(ekk_instance_.simplex_basis_.hash);
     ekk_instance_.simplex_lp_status_.has_fresh_rebuild = false;
-    rebuild_reason = RebuildReason::REBUILD_REASON_CHOOSE_COLUMN_FAIL;
+    rebuild_reason = RebuildReason::kRebuildReasonChooseColumnFail;
 #endif
   }
 
