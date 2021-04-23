@@ -82,7 +82,7 @@ HighsStatus HEkk::solve() {
   HighsInt& simplex_strategy = simplex_info_.simplex_strategy;
 
   // Initial solve according to strategy
-  if (simplex_strategy == SIMPLEX_STRATEGY_PRIMAL) {
+  if (simplex_strategy == kSimplexStrategyPrimal) {
     algorithm = "primal";
     reportSimplexPhaseIterations(options_.log_options, iteration_count_,
                                  simplex_info_, true);
@@ -102,13 +102,13 @@ HighsStatus HEkk::solve() {
     dual_solver.options();
     //
     // Solve, depending on the particular strategy
-    if (simplex_strategy == SIMPLEX_STRATEGY_DUAL_TASKS) {
+    if (simplex_strategy == kSimplexStrategyDualTasks) {
       highsLogUser(
           options_.log_options, HighsLogType::kInfo,
           "Using EKK parallel dual simplex solver - SIP with %" HIGHSINT_FORMAT
           " threads\n",
           simplex_info_.num_threads);
-    } else if (simplex_strategy == SIMPLEX_STRATEGY_DUAL_MULTI) {
+    } else if (simplex_strategy == kSimplexStrategyDualMulti) {
       highsLogUser(
           options_.log_options, HighsLogType::kInfo,
           "Using EKK parallel dual simplex solver - PAMI with %" HIGHSINT_FORMAT
@@ -160,10 +160,10 @@ HighsStatus HEkk::cleanup() {
     // Primal infeasibilities, so should be just dual phase 2
     assert(!simplex_info_.num_dual_infeasibility);
     // Use dual simplex (phase 2) with Devex pricing and no perturbation
-    simplex_info_.simplex_strategy = SIMPLEX_STRATEGY_DUAL;
+    simplex_info_.simplex_strategy = kSimplexStrategyDual;
     simplex_info_.dual_simplex_cost_perturbation_multiplier = 0;
     simplex_info_.dual_edge_weight_strategy =
-        SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_DEVEX;
+        kSimplexDualEdgeWeightStrategyDevex;
     HEkkDual dual_solver(*this);
     dual_solver.options();
     workEdWt_ = dual_solver.getWorkEdWt();
@@ -176,7 +176,7 @@ HighsStatus HEkk::cleanup() {
     // Dual infeasibilities, so should be just primal phase 2
     assert(!simplex_info_.num_primal_infeasibility);
     // Use primal simplex (phase 2) with no perturbation
-    simplex_info_.simplex_strategy = SIMPLEX_STRATEGY_PRIMAL;
+    simplex_info_.simplex_strategy = kSimplexStrategyPrimal;
     simplex_info_.primal_simplex_bound_perturbation_multiplier = 0;
     HEkkPrimal primal_solver(*this);
     workEdWt_ = NULL;
@@ -199,42 +199,42 @@ HighsStatus HEkk::setBasis() {
   simplex_basis_.nonbasicMove_.resize(num_tot);
   simplex_basis_.basicIndex_.resize(num_row);
   for (HighsInt iCol = 0; iCol < num_col; iCol++) {
-    simplex_basis_.nonbasicFlag_[iCol] = NONBASIC_FLAG_TRUE;
+    simplex_basis_.nonbasicFlag_[iCol] = kNonbasicFlagTrue;
     double lower = simplex_lp_.colLower_[iCol];
     double upper = simplex_lp_.colUpper_[iCol];
-    HighsInt move = illegal_move_value;
+    HighsInt move = kIllegalMoveValue;
     if (lower == upper) {
       // Fixed
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     } else if (!highs_isInfinity(-lower)) {
       // Finite lower bound so boxed or lower
       if (!highs_isInfinity(upper)) {
         // Finite upper bound so boxed. Set to bound of LP that is closer to
         // zero
-        if (move == illegal_move_value) {
+        if (move == kIllegalMoveValue) {
           if (fabs(lower) < fabs(upper)) {
-            move = NONBASIC_MOVE_UP;
+            move = kNonbasicMoveUp;
           } else {
-            move = NONBASIC_MOVE_DN;
+            move = kNonbasicMoveDn;
           }
         }
       } else {
         // Lower (since upper bound is infinite)
-        move = NONBASIC_MOVE_UP;
+        move = kNonbasicMoveUp;
       }
     } else if (!highs_isInfinity(upper)) {
       // Upper
-      move = NONBASIC_MOVE_DN;
+      move = kNonbasicMoveDn;
     } else {
       // FREE
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     }
-    assert(move != illegal_move_value);
+    assert(move != kIllegalMoveValue);
     simplex_basis_.nonbasicMove_[iCol] = move;
   }
   for (HighsInt iRow = 0; iRow < num_row; iRow++) {
     HighsInt iVar = num_col + iRow;
-    simplex_basis_.nonbasicFlag_[iVar] = NONBASIC_FLAG_FALSE;
+    simplex_basis_.nonbasicFlag_[iVar] = kNonbasicFlagFalse;
     HighsHashHelpers::sparse_combine(simplex_basis_.hash, iVar, 2147483648);
     simplex_basis_.basicIndex_[iRow] = iVar;
   }
@@ -269,23 +269,23 @@ HighsStatus HEkk::setBasis(const HighsBasis& basis) {
     const double lower = simplex_lp_.colLower_[iCol];
     const double upper = simplex_lp_.colUpper_[iCol];
     if (basis.col_status[iCol] == HighsBasisStatus::kBasic) {
-      simplex_basis_.nonbasicFlag_[iVar] = NONBASIC_FLAG_FALSE;
+      simplex_basis_.nonbasicFlag_[iVar] = kNonbasicFlagFalse;
       simplex_basis_.nonbasicMove_[iVar] = 0;
       simplex_basis_.basicIndex_[num_basic_variables++] = iVar;
       HighsHashHelpers::sparse_combine(simplex_basis_.hash, iVar, 2147483648);
     } else {
-      simplex_basis_.nonbasicFlag_[iVar] = NONBASIC_FLAG_TRUE;
+      simplex_basis_.nonbasicFlag_[iVar] = kNonbasicFlagTrue;
       if (basis.col_status[iCol] == HighsBasisStatus::kLower) {
         if (lower == upper) {
-          simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+          simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
         } else {
-          simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_UP;
+          simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveUp;
         }
       } else if (basis.col_status[iCol] == HighsBasisStatus::kUpper) {
-        simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_DN;
+        simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveDn;
       } else {
         assert(basis.col_status[iCol] == HighsBasisStatus::kZero);
-        simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+        simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
       }
     }
   }
@@ -294,23 +294,23 @@ HighsStatus HEkk::setBasis(const HighsBasis& basis) {
     const double lower = simplex_lp_.rowLower_[iRow];
     const double upper = simplex_lp_.rowUpper_[iRow];
     if (basis.row_status[iRow] == HighsBasisStatus::kBasic) {
-      simplex_basis_.nonbasicFlag_[iVar] = NONBASIC_FLAG_FALSE;
+      simplex_basis_.nonbasicFlag_[iVar] = kNonbasicFlagFalse;
       simplex_basis_.nonbasicMove_[iVar] = 0;
       simplex_basis_.basicIndex_[num_basic_variables++] = iVar;
       HighsHashHelpers::sparse_combine(simplex_basis_.hash, iVar, 2147483648);
     } else {
-      simplex_basis_.nonbasicFlag_[iVar] = NONBASIC_FLAG_TRUE;
+      simplex_basis_.nonbasicFlag_[iVar] = kNonbasicFlagTrue;
       if (basis.row_status[iRow] == HighsBasisStatus::kLower) {
         if (lower == upper) {
-          simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+          simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
         } else {
-          simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_DN;
+          simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveDn;
         }
       } else if (basis.row_status[iRow] == HighsBasisStatus::kUpper) {
-        simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_UP;
+        simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveUp;
       } else {
         assert(basis.row_status[iRow] == HighsBasisStatus::kZero);
-        simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+        simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
       }
     }
   }
@@ -382,11 +382,11 @@ HighsBasis HEkk::getHighsBasis() {
     HighsBasisStatus basis_status = HighsBasisStatus::kNonbasic;
     if (!simplex_basis_.nonbasicFlag_[iVar]) {
       basis_status = HighsBasisStatus::kBasic;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_UP) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveUp) {
       basis_status = HighsBasisStatus::kLower;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_DN) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveDn) {
       basis_status = HighsBasisStatus::kUpper;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_ZE) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveZe) {
       if (lower == upper) {
         basis_status = HighsBasisStatus::kLower;
       } else {
@@ -402,11 +402,11 @@ HighsBasis HEkk::getHighsBasis() {
     HighsBasisStatus basis_status = HighsBasisStatus::kNonbasic;
     if (!simplex_basis_.nonbasicFlag_[iVar]) {
       basis_status = HighsBasisStatus::kBasic;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_UP) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveUp) {
       basis_status = HighsBasisStatus::kUpper;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_DN) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveDn) {
       basis_status = HighsBasisStatus::kLower;
-    } else if (simplex_basis_.nonbasicMove_[iVar] == NONBASIC_MOVE_ZE) {
+    } else if (simplex_basis_.nonbasicMove_[iVar] == kNonbasicMoveZe) {
       if (lower == upper) {
         basis_status = HighsBasisStatus::kLower;
       } else {
@@ -442,7 +442,7 @@ HighsInt HEkk::initialiseSimplexLpBasisAndFactor(
     }
     // Account for rank deficiency by correcing nonbasicFlag
     handleRankDeficiency();
-    updateSimplexLpStatus(simplex_lp_status_, LpAction::NEW_BASIS);
+    updateSimplexLpStatus(simplex_lp_status_, LpAction::kNewBasis);
     setNonbasicMove();
     simplex_lp_status_.has_basis = true;
     simplex_lp_status_.has_invert = true;
@@ -459,8 +459,8 @@ void HEkk::handleRankDeficiency() {
   for (HighsInt k = 0; k < rank_deficiency; k++) {
     HighsInt variable_in = simplex_lp_.numCol_ + noPvR[k];
     HighsInt variable_out = noPvC[k];
-    simplex_basis_.nonbasicFlag_[variable_in] = NONBASIC_FLAG_FALSE;
-    simplex_basis_.nonbasicFlag_[variable_out] = NONBASIC_FLAG_TRUE;
+    simplex_basis_.nonbasicFlag_[variable_in] = kNonbasicFlagFalse;
+    simplex_basis_.nonbasicFlag_[variable_out] = kNonbasicFlagTrue;
   }
   simplex_lp_status_.has_matrix = false;
 }
@@ -511,8 +511,8 @@ HighsStatus HEkk::initialiseForSolve() {
   updateSimplexOptions();
   initialiseMatrix();  // Timed
   allocateWorkAndBaseArrays();
-  initialiseCost(SimplexAlgorithm::kPrimal, SOLVE_PHASE_UNKNOWN, false);
-  initialiseBound(SimplexAlgorithm::kPrimal, SOLVE_PHASE_UNKNOWN, false);
+  initialiseCost(SimplexAlgorithm::kPrimal, kSolvePhaseUnknown, false);
+  initialiseBound(SimplexAlgorithm::kPrimal, kSolvePhaseUnknown, false);
   initialiseNonbasicValueAndMove();
   computePrimal();                // Timed
   computeDual();                  // Timed
@@ -613,17 +613,17 @@ void HEkk::chooseSimplexStrategyThreads(const HighsOptions& options,
   // simplex
   HighsInt& simplex_strategy = simplex_info.simplex_strategy;
   // By default, use the HighsOptions strategy. If this is
-  // SIMPLEX_STRATEGY_CHOOSE, then the strategy used will depend on
+  // kSimplexStrategyChoose, then the strategy used will depend on
   // whether the current basis is primal feasible.
   simplex_strategy = options.simplex_strategy;
-  if (simplex_strategy == SIMPLEX_STRATEGY_CHOOSE) {
+  if (simplex_strategy == kSimplexStrategyChoose) {
     // HiGHS is left to choose the simplex strategy
     if (simplex_info.num_primal_infeasibility > 0) {
       // Not primal feasible, so use dual simplex
-      simplex_strategy = SIMPLEX_STRATEGY_DUAL;
+      simplex_strategy = kSimplexStrategyDual;
     } else {
       // Primal feasible. so use primal simplex
-      simplex_strategy = SIMPLEX_STRATEGY_PRIMAL;
+      simplex_strategy = kSimplexStrategyPrimal;
     }
   }
   // Set min/max_threads to correspond to serial code. They will be
@@ -638,11 +638,11 @@ void HEkk::chooseSimplexStrategyThreads(const HighsOptions& options,
   omp_max_threads = omp_get_max_threads();
 #endif
   if (options.parallel == kHighsOnString &&
-      simplex_strategy == SIMPLEX_STRATEGY_DUAL) {
+      simplex_strategy == kSimplexStrategyDual) {
     // The parallel strategy is on and the simplex strategy is dual so use
     // PAMI if there are enough OMP threads
-    if (omp_max_threads >= DUAL_MULTI_MIN_THREADS)
-      simplex_strategy = SIMPLEX_STRATEGY_DUAL_MULTI;
+    if (omp_max_threads >= kDualMultiMinThreads)
+      simplex_strategy = kSimplexStrategyDualMulti;
   }
   //
   // If parallel stratgies are used, the minimum number of HiGHS threads used
@@ -651,11 +651,11 @@ void HEkk::chooseSimplexStrategyThreads(const HighsOptions& options,
   // All this is independent of the number of OMP threads available,
   // since code with multiple HiGHS threads can be run in serial.
 #ifdef OPENMP
-  if (simplex_strategy == SIMPLEX_STRATEGY_DUAL_TASKS) {
-    simplex_info.min_threads = max(DUAL_TASKS_MIN_THREADS, highs_min_threads);
+  if (simplex_strategy == kSimplexStrategyDualTasks) {
+    simplex_info.min_threads = max(kDualTasksMinThreads, highs_min_threads);
     simplex_info.max_threads = max(simplex_info.min_threads, highs_max_threads);
-  } else if (simplex_strategy == SIMPLEX_STRATEGY_DUAL_MULTI) {
-    simplex_info.min_threads = max(DUAL_MULTI_MIN_THREADS, highs_min_threads);
+  } else if (simplex_strategy == kSimplexStrategyDualMulti) {
+    simplex_info.min_threads = max(kDualMultiMinThreads, highs_min_threads);
     simplex_info.max_threads = max(simplex_info.min_threads, highs_max_threads);
   }
 #endif
@@ -721,7 +721,7 @@ bool HEkk::getNonsingularInverse(const HighsInt solve_phase) {
   const bool artificial_rank_deficiency = false;  //  true;//
   if (artificial_rank_deficiency) {
     if (!simplex_info_.phase1_backtracking_test_done &&
-        solve_phase == SOLVE_PHASE_1) {
+        solve_phase == kSolvePhase1) {
       // Claim rank deficiency to test backtracking
       printf("Phase1 (Iter %" HIGHSINT_FORMAT
              ") Claiming rank deficiency to test backtracking\n",
@@ -729,7 +729,7 @@ bool HEkk::getNonsingularInverse(const HighsInt solve_phase) {
       rank_deficiency = 1;
       simplex_info_.phase1_backtracking_test_done = true;
     } else if (!simplex_info_.phase2_backtracking_test_done &&
-               solve_phase == SOLVE_PHASE_2) {
+               solve_phase == kSolvePhase2) {
       // Claim rank deficiency to test backtracking
       printf("Phase2 (Iter %" HIGHSINT_FORMAT
              ") Claiming rank deficiency to test backtracking\n",
@@ -754,7 +754,7 @@ bool HEkk::getNonsingularInverse(const HighsInt solve_phase) {
     // new perturbation as appropriate and the permutation for tie breaking is
     // updated
     initialiseSimplexLpRandomVectors();
-    updateSimplexLpStatus(simplex_lp_status_, LpAction::BACKTRACKING);
+    updateSimplexLpStatus(simplex_lp_status_, LpAction::kBacktracking);
     HighsInt backtrack_rank_deficiency = computeFactor();
     // This basis has previously been inverted successfully, so it shouldn't be
     // singular
@@ -967,7 +967,7 @@ void HEkk::setNonbasicMove() {
   for (HighsInt iVar = 0; iVar < num_tot; iVar++) {
     if (!simplex_basis_.nonbasicFlag_[iVar]) {
       // Basic variable
-      simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+      simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
       continue;
     }
     // Nonbasic variable
@@ -979,10 +979,10 @@ void HEkk::setNonbasicMove() {
       lower = -simplex_lp_.rowUpper_[iRow];
       upper = -simplex_lp_.rowLower_[iRow];
     }
-    HighsInt move = illegal_move_value;
+    HighsInt move = kIllegalMoveValue;
     if (lower == upper) {
       // Fixed
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     } else if (!highs_isInfinity(-lower)) {
       // Finite lower bound so boxed or lower
       if (!highs_isInfinity(upper)) {
@@ -996,31 +996,31 @@ void HEkk::setNonbasicMove() {
           double midpoint = 0.5 * (lower + upper);
           double value = simplex_info_.workValue_[iVar];
           if (value < midpoint) {
-            move = NONBASIC_MOVE_UP;
+            move = kNonbasicMoveUp;
           } else {
-            move = NONBASIC_MOVE_DN;
+            move = kNonbasicMoveDn;
           }
         }
         // 2. Bound of original LP that is closer to zero
-        if (move == illegal_move_value) {
+        if (move == kIllegalMoveValue) {
           if (fabs(lower) < fabs(upper)) {
-            move = NONBASIC_MOVE_UP;
+            move = kNonbasicMoveUp;
           } else {
-            move = NONBASIC_MOVE_DN;
+            move = kNonbasicMoveDn;
           }
         }
       } else {
         // Lower (since upper bound is infinite)
-        move = NONBASIC_MOVE_UP;
+        move = kNonbasicMoveUp;
       }
     } else if (!highs_isInfinity(upper)) {
       // Upper
-      move = NONBASIC_MOVE_DN;
+      move = kNonbasicMoveDn;
     } else {
       // FREE
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     }
-    assert(move != illegal_move_value);
+    assert(move != kIllegalMoveValue);
     simplex_basis_.nonbasicMove_[iVar] = move;
   }
 }
@@ -1218,7 +1218,7 @@ void HEkk::initialiseBound(const SimplexAlgorithm algorithm,
       double upper = simplex_info_.workUpper_[iVar];
       const bool fixed = lower == upper;
       // Don't perturb bounds of nonbasic fixed variables as they stay nonbasic
-      if (simplex_basis_.nonbasicFlag_[iVar] == NONBASIC_FLAG_TRUE && fixed)
+      if (simplex_basis_.nonbasicFlag_[iVar] == kNonbasicFlagTrue && fixed)
         continue;
       double random_value = simplex_info_.numTotRandomValue_[iVar];
       if (lower > -kHighsInf) {
@@ -1243,7 +1243,7 @@ void HEkk::initialiseBound(const SimplexAlgorithm algorithm,
       }
       simplex_info_.workRange_[iVar] =
           simplex_info_.workUpper_[iVar] - simplex_info_.workLower_[iVar];
-      if (simplex_basis_.nonbasicFlag_[iVar] == NONBASIC_FLAG_FALSE) continue;
+      if (simplex_basis_.nonbasicFlag_[iVar] == kNonbasicFlagFalse) continue;
       // Set values of nonbasic variables
       if (simplex_basis_.nonbasicMove_[iVar] > 0) {
         simplex_info_.workValue_[iVar] = lower;
@@ -1262,7 +1262,7 @@ void HEkk::initialiseBound(const SimplexAlgorithm algorithm,
   // Dual simplex costs are either from the LP or set to special values in phase
   // 1
   assert(algorithm == SimplexAlgorithm::kDual);
-  if (solve_phase == SOLVE_PHASE_2) return;
+  if (solve_phase == kSolvePhase2) return;
 
   // The dual objective is the sum of products of primal and dual
   // values for nonbasic variables. For dual simplex phase 1, the
@@ -1324,7 +1324,7 @@ void HEkk::initialiseNonbasicValueAndMove() {
   for (HighsInt iVar = 0; iVar < num_tot; iVar++) {
     if (!simplex_basis_.nonbasicFlag_[iVar]) {
       // Basic variable
-      simplex_basis_.nonbasicMove_[iVar] = NONBASIC_MOVE_ZE;
+      simplex_basis_.nonbasicMove_[iVar] = kNonbasicMoveZe;
       continue;
     }
     // Nonbasic variable
@@ -1332,43 +1332,43 @@ void HEkk::initialiseNonbasicValueAndMove() {
     const double upper = simplex_info_.workUpper_[iVar];
     const HighsInt original_move = simplex_basis_.nonbasicMove_[iVar];
     double value;
-    HighsInt move = illegal_move_value;
+    HighsInt move = kIllegalMoveValue;
     if (lower == upper) {
       // Fixed
       value = lower;
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     } else if (!highs_isInfinity(-lower)) {
       // Finite lower bound so boxed or lower
       if (!highs_isInfinity(upper)) {
         // Finite upper bound so boxed
-        if (original_move == NONBASIC_MOVE_UP) {
+        if (original_move == kNonbasicMoveUp) {
           // Set at lower
           value = lower;
-          move = NONBASIC_MOVE_UP;
-        } else if (original_move == NONBASIC_MOVE_DN) {
+          move = kNonbasicMoveUp;
+        } else if (original_move == kNonbasicMoveDn) {
           // Set at upper
           value = upper;
-          move = NONBASIC_MOVE_DN;
+          move = kNonbasicMoveDn;
         } else {
           // Invalid nonbasicMove: correct and set value at lower
           value = lower;
-          move = NONBASIC_MOVE_UP;
+          move = kNonbasicMoveUp;
         }
       } else {
         // Lower
         value = lower;
-        move = NONBASIC_MOVE_UP;
+        move = kNonbasicMoveUp;
       }
     } else if (!highs_isInfinity(upper)) {
       // Upper
       value = upper;
-      move = NONBASIC_MOVE_DN;
+      move = kNonbasicMoveDn;
     } else {
       // FREE
       value = 0;
-      move = NONBASIC_MOVE_ZE;
+      move = kNonbasicMoveZe;
     }
-    assert(move != illegal_move_value);
+    assert(move != kIllegalMoveValue);
     simplex_basis_.nonbasicMove_[iVar] = move;
     simplex_info_.workValue_[iVar] = value;
   }
@@ -1447,13 +1447,12 @@ void HEkk::choosePriceTechnique(const HighsInt price_strategy,
   // By default switch to column PRICE when pi_p has at least this
   // density
   const double density_for_column_price_switch = 0.75;
-  use_col_price =
-      (price_strategy == SIMPLEX_PRICE_STRATEGY_COL) ||
-      (price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_SWITCH_COL_SWITCH &&
-       row_ep_density > density_for_column_price_switch);
+  use_col_price = (price_strategy == kSimplexPriceStrategyCol) ||
+                  (price_strategy == kSimplexPriceStrategyRowSwitchColSwitch &&
+                   row_ep_density > density_for_column_price_switch);
   use_row_price_w_switch =
-      price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_SWITCH ||
-      price_strategy == SIMPLEX_PRICE_STRATEGY_ROW_SWITCH_COL_SWITCH;
+      price_strategy == kSimplexPriceStrategyRowSwitch ||
+      price_strategy == kSimplexPriceStrategyRowSwitchColSwitch;
 }
 
 void HEkk::tableauRowPrice(const HVector& row_ep, HVector& row_ap) {
@@ -1833,14 +1832,14 @@ void HEkk::updateFactor(HVector* column, HVector* row_ep, HighsInt* iRow,
   // Now have a representation of B^{-1}, but it is not fresh
   simplex_lp_status_.has_invert = true;
   if (simplex_info_.update_count >= simplex_info_.update_limit)
-    *hint = REBUILD_REASON_UPDATE_LIMIT_REACHED;
+    *hint = kRebuildReasonUpdateLimitReached;
 
   // Determine whether to reinvert based on the synthetic clock
   bool reinvert_syntheticClock = total_syntheticTick_ >= build_syntheticTick_;
   const bool performed_min_updates =
       simplex_info_.update_count >= synthetic_tick_reinversion_min_update_count;
   if (reinvert_syntheticClock && performed_min_updates)
-    *hint = REBUILD_REASON_SYNTHETIC_CLOCK_SAYS_INVERT;
+    *hint = kRebuildReasonSyntheticClockSaysInvert;
 
   analysis_.simplexTimerStop(UpdateFactorClock);
 }

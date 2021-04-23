@@ -688,11 +688,11 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
     lpsolver.clearSolver();
 #if 0
     // first try to use the primal simplex solver starting from the last basis
-    if (lpsolver.getOptions().simplex_strategy == SIMPLEX_STRATEGY_DUAL) {
-      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_PRIMAL);
+    if (lpsolver.getOptions().simplex_strategy == kSimplexStrategyDual) {
+      lpsolver.setOptionValue("simplex_strategy", kSimplexStrategyPrimal);
       recoverBasis();
       auto retval = run(resolve_on_error);
-      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
+      lpsolver.setOptionValue("simplex_strategy", kSimplexStrategyDual);
 
       return retval;
     }
@@ -700,7 +700,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
 
     if (resolve_on_error) {
       // still an error: now try to solve with presolve from scratch
-      lpsolver.setOptionValue("simplex_strategy", SIMPLEX_STRATEGY_DUAL);
+      lpsolver.setOptionValue("simplex_strategy", kSimplexStrategyDual);
       lpsolver.setOptionValue("presolve", "on");
       auto retval = run(false);
       lpsolver.setOptionValue("presolve", "off");
@@ -730,9 +730,9 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
       hasdualproof = false;
 
       HighsInt scalestrategy = lpsolver.getOptions().simplex_scale_strategy;
-      if (scalestrategy != SIMPLEX_SCALE_STRATEGY_OFF) {
+      if (scalestrategy != kSimplexScaleStrategyOff) {
         lpsolver.setOptionValue("simplex_scale_strategy",
-                                SIMPLEX_SCALE_STRATEGY_OFF);
+                                kSimplexScaleStrategyOff);
         HighsBasis basis = lpsolver.getBasis();
         lpsolver.clearSolver();
         lpsolver.setBasis(basis);
@@ -775,9 +775,9 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
         //     "dual:%g)\n",
         //     info.max_primal_infeasibility, info.max_dual_infeasibility);
         HighsInt scalestrategy = lpsolver.getOptions().simplex_scale_strategy;
-        if (scalestrategy != SIMPLEX_SCALE_STRATEGY_OFF) {
+        if (scalestrategy != kSimplexScaleStrategyOff) {
           lpsolver.setOptionValue("simplex_scale_strategy",
-                                  SIMPLEX_SCALE_STRATEGY_OFF);
+                                  kSimplexScaleStrategyOff);
           HighsBasis basis = lpsolver.getBasis();
           lpsolver.clearSolver();
           lpsolver.setBasis(basis);

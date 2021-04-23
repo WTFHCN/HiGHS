@@ -303,9 +303,8 @@ struct HighsOptionsStruct {
   HighsInt allowed_simplex_cost_scale_factor;
   HighsInt simplex_dualise_strategy;
   HighsInt simplex_permute_strategy;
-  HighsInt dual_simplex_cleanup_strategy;
+  bool dual_simplex_cleanup;
   HighsInt simplex_price_strategy;
-  HighsInt dual_chuzc_sort_strategy;
   HighsInt presolve_substitution_maxfillin;
   bool simplex_initial_condition_check;
   double simplex_initial_condition_tolerance;
@@ -496,33 +495,32 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_int =
         new OptionRecordInt("simplex_strategy", "Strategy for simplex solver",
-                            advanced, &simplex_strategy, SIMPLEX_STRATEGY_MIN,
-                            SIMPLEX_STRATEGY_DUAL, SIMPLEX_STRATEGY_MAX);
+                            advanced, &simplex_strategy, kSimplexStrategyMin,
+                            kSimplexStrategyDual, kSimplexStrategyMax);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
         "simplex_scale_strategy",
         "Strategy for scaling before simplex solver: off / on (0/1)", advanced,
-        &simplex_scale_strategy, SIMPLEX_SCALE_STRATEGY_MIN,
-        SIMPLEX_SCALE_STRATEGY_HIGHS_FORCED, SIMPLEX_SCALE_STRATEGY_MAX);
+        &simplex_scale_strategy, kSimplexScaleStrategyMin,
+        kSimplexScaleStrategyHighsForced, kSimplexScaleStrategyMax);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
         "simplex_crash_strategy",
         "Strategy for simplex crash: off / LTSSF / Bixby (0/1/2)", advanced,
-        &simplex_crash_strategy, SIMPLEX_CRASH_STRATEGY_MIN,
-        SIMPLEX_CRASH_STRATEGY_OFF, SIMPLEX_CRASH_STRATEGY_MAX);
+        &simplex_crash_strategy, kSimplexCrashStrategyMin,
+        kSimplexCrashStrategyOff, kSimplexCrashStrategyMax);
     records.push_back(record_int);
 
-    record_int =
-        new OptionRecordInt("simplex_dual_edge_weight_strategy",
-                            "Strategy for simplex dual edge weights: Choose / "
-                            "Dantzig / Devex / Steepest "
-                            "Edge (-1/0/1/2)",
-                            advanced, &simplex_dual_edge_weight_strategy,
-                            SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_MIN,
-                            SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_CHOOSE,
-                            SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_MAX);
+    record_int = new OptionRecordInt(
+        "simplex_dual_edge_weight_strategy",
+        "Strategy for simplex dual edge weights: Choose / "
+        "Dantzig / Devex / Steepest "
+        "Edge (-1/0/1/2)",
+        advanced, &simplex_dual_edge_weight_strategy,
+        kSimplexDualEdgeWeightStrategyMin, kSimplexDualEdgeWeightStrategyChoose,
+        kSimplexDualEdgeWeightStrategyMax);
     records.push_back(record_int);
 
     record_int =
@@ -530,9 +528,9 @@ class HighsOptions : public HighsOptionsStruct {
                             "Strategy for simplex primal edge weights: Choose "
                             "/ Dantzig / Devex (-1/0/1)",
                             advanced, &simplex_primal_edge_weight_strategy,
-                            SIMPLEX_PRIMAL_EDGE_WEIGHT_STRATEGY_MIN,
-                            SIMPLEX_PRIMAL_EDGE_WEIGHT_STRATEGY_CHOOSE,
-                            SIMPLEX_PRIMAL_EDGE_WEIGHT_STRATEGY_MAX);
+                            kSimplexPrimalEdgeWeightStrategyMin,
+                            kSimplexPrimalEdgeWeightStrategyChoose,
+                            kSimplexPrimalEdgeWeightStrategyMax);
     records.push_back(record_int);
 
     record_int = new OptionRecordInt(
@@ -714,27 +712,15 @@ class HighsOptions : public HighsOptionsStruct {
         kHighsOptionOn);
     records.push_back(record_int);
 
-    record_int =
-        new OptionRecordInt("dual_simplex_cleanup_strategy",
-                            "Strategy for cleanup in dual simplex solver: none "
-                            "/ HPrimal / HEkk (0/1/2)",
-                            advanced, &dual_simplex_cleanup_strategy,
-                            DUAL_SIMPLEX_CLEANUP_STRATEGY_MIN,
-                            DUAL_SIMPLEX_CLEANUP_STRATEGY_HPRIMAL,
-                            DUAL_SIMPLEX_CLEANUP_STRATEGY_MAX);
-    records.push_back(record_int);
+    record_bool = new OptionRecordBool("dual_simplex_cleanup",
+                                       "Perform dual simplex cleanup", advanced,
+                                       &dual_simplex_cleanup, true);
+    records.push_back(record_bool);
 
     record_int = new OptionRecordInt(
         "simplex_price_strategy", "Strategy for PRICE in simplex", advanced,
-        &simplex_price_strategy, SIMPLEX_PRICE_STRATEGY_MIN,
-        SIMPLEX_PRICE_STRATEGY_ROW_SWITCH_COL_SWITCH,
-        SIMPLEX_PRICE_STRATEGY_MAX);
-    records.push_back(record_int);
-
-    record_int = new OptionRecordInt(
-        "dual_chuzc_sort_strategy", "Strategy for CHUZC sort in dual simplex",
-        advanced, &dual_chuzc_sort_strategy, SIMPLEX_DUAL_CHUZC_STRATEGY_MIN,
-        SIMPLEX_DUAL_CHUZC_STRATEGY_CHOOSE, SIMPLEX_DUAL_CHUZC_STRATEGY_MAX);
+        &simplex_price_strategy, kSimplexPriceStrategyMin,
+        kSimplexPriceStrategyRowSwitchColSwitch, kSimplexPriceStrategyMax);
     records.push_back(record_int);
 
     record_bool =

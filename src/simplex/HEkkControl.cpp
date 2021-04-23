@@ -20,7 +20,7 @@ void HEkk::initialiseControl() {
   // Copy tolerances from options
   simplex_info_.allow_dual_steepest_edge_to_devex_switch =
       options_.simplex_dual_edge_weight_strategy ==
-      SIMPLEX_DUAL_EDGE_WEIGHT_STRATEGY_CHOOSE;
+      kSimplexDualEdgeWeightStrategyChoose;
   simplex_info_.dual_steepest_edge_weight_log_error_threshold =
       options_.dual_steepest_edge_weight_log_error_threshold;
   // Initialise the iteration count when control started. Need to
@@ -49,8 +49,8 @@ void HEkk::initialiseControl() {
 
 void HEkk::updateOperationResultDensity(const double local_density,
                                         double& density) {
-  density = (1 - running_average_multiplier) * density +
-            running_average_multiplier * local_density;
+  density = (1 - kRunningAverageMultiplier) * density +
+            kRunningAverageMultiplier * local_density;
 }
 
 void HEkk::assessDSEWeightError(const double computed_edge_weight,
@@ -72,6 +72,11 @@ void HEkk::assessDSEWeightError(const double computed_edge_weight,
 }
 
 bool HEkk::switchToDevex() {
+  // Parameters controlling switch from DSE to Devex on cost
+  const double kCostlyDseMeasureLimit = 1000.0;
+  const double kCostlyDseMinimumDensity = 0.01;
+  const double kCostlyDseFractionNumTotalIterationBeforeSwitch = 0.1;
+  const double kCostlyDseFractionNumCostlyDseIterationBeforeSwitch = 0.05;
   bool switch_to_devex = false;
   // Firstly consider switching on the basis of NLA cost
   double costly_DSE_measure;
@@ -87,13 +92,13 @@ bool HEkk::switchToDevex() {
     costly_DSE_measure = 0;
   }
   bool costly_DSE_iteration =
-      costly_DSE_measure > costly_DSE_measure_limit &&
-      simplex_info_.row_DSE_density > costly_DSE_minimum_density;
+      costly_DSE_measure > kCostlyDseMeasureLimit &&
+      simplex_info_.row_DSE_density > kCostlyDseMinimumDensity;
   simplex_info_.costly_DSE_frequency =
-      (1 - running_average_multiplier) * simplex_info_.costly_DSE_frequency;
+      (1 - kRunningAverageMultiplier) * simplex_info_.costly_DSE_frequency;
   if (costly_DSE_iteration) {
     simplex_info_.num_costly_DSE_iteration++;
-    simplex_info_.costly_DSE_frequency += running_average_multiplier * 1.0;
+    simplex_info_.costly_DSE_frequency += kRunningAverageMultiplier * 1.0;
     // What if non-dual iterations have been performed: need to think about this
     HighsInt local_iteration_count =
         iteration_count_ - simplex_info_.control_iteration_count0;
@@ -104,9 +109,9 @@ bool HEkk::switchToDevex() {
         simplex_info_.allow_dual_steepest_edge_to_devex_switch &&
         (simplex_info_.num_costly_DSE_iteration >
          local_iteration_count *
-             costly_DSE_fraction_num_costly_DSE_iteration_before_switch) &&
+             kCostlyDseFractionNumCostlyDseIterationBeforeSwitch) &&
         (local_iteration_count >
-         costly_DSE_fraction_num_total_iteration_before_switch * local_num_tot);
+         kCostlyDseFractionNumTotalIterationBeforeSwitch * local_num_tot);
 
     if (switch_to_devex) {
       highsLogUser(options_.log_options, HighsLogType::kInfo,
