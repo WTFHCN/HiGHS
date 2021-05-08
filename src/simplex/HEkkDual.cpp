@@ -1053,7 +1053,7 @@ void HEkkDual::iterate() {
   chooseColumn(&row_ep);
   analysis->simplexTimerStop(IterateChuzcClock);
 
-  if (ekk_instance_.simplex_info_
+  if (ekk_instance_.info_
           .allow_cost_perturbation &&  // todo, if cost perturbation is not
                                        // allowed then maybe increase a cycling
                                        // counter, clear the visited basis set
@@ -1062,7 +1062,7 @@ void HEkkDual::iterate() {
                                        // one so that a single occurence of a
                                        // cycle or a false positive does not
                                        // lead to an immediate error
-      solvePhase == kSolvePhase2 &&
+      solve_phase == kSolvePhase2 &&
       ekk_instance_.visited_basis_.size() > 1 &&
       ekk_instance_.checkForCycling(variable_in, row_out)) {
     printf("cycling detected\n");
@@ -1090,17 +1090,17 @@ void HEkkDual::iterate() {
     // in case cycling is detected: draw new random
     // numbers, reperturb costs, and rebuild
     ekk_instance_.initialiseSimplexLpRandomVectors();
-    ekk_instance_.simplex_info_.dual_simplex_cost_perturbation_multiplier =
-        std::min(128.0,
-                 std::max(2 * ekk_instance_.simplex_info_
-                                  .dual_simplex_cost_perturbation_multiplier,
-                          1.0));
-    double oldCost = ekk_instance_.simplex_info_.workCost_[variable_in];
-    ekk_instance_.initialiseCost(SimplexAlgorithm::kDual, solvePhase, true);
+    ekk_instance_.info_.dual_simplex_cost_perturbation_multiplier = std::min(
+        128.0,
+        std::max(
+            2 * ekk_instance_.info_.dual_simplex_cost_perturbation_multiplier,
+            1.0));
+    double oldCost = ekk_instance_.info_.workCost_[variable_in];
+    ekk_instance_.initialiseCost(SimplexAlgorithm::kDual, solve_phase, true);
     // perturb the chosen column to have zero dual in the current solution
     // this seems to considerably improve cycling behavior even though more
     // primal simplex iterations may be required in the cleanup phase
-    ekk_instance_.simplex_info_.workCost_[variable_in] =
+    ekk_instance_.info_.workCost_[variable_in] =
         oldCost - workDual[variable_in];
     workDual[variable_in] = 0;
 
@@ -1109,8 +1109,8 @@ void HEkkDual::iterate() {
     // add new perturbations if no new cycles occur. Only store the current
     // basis hash.
     ekk_instance_.visited_basis_.clear();
-    ekk_instance_.visited_basis_.insert(ekk_instance_.simplex_basis_.hash);
-    ekk_instance_.simplex_lp_status_.has_fresh_rebuild = false;
+    ekk_instance_.visited_basis_.insert(ekk_instance_.basis_.hash);
+    ekk_instance_.status_.has_fresh_rebuild = false;
     rebuild_reason = RebuildReason::kRebuildReasonChooseColumnFail;
 #endif
   }
