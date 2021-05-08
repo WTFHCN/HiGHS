@@ -49,16 +49,16 @@ HighsStatus getRangingData(HighsRanging& ranging,
     return HighsStatus::kError;
   }
   const HEkk& ekk_instance = highs_model_object.ekk_instance_;
-  if (!ekk_instance.simplex_lp_status_.valid) {
+  if (!ekk_instance.status_.valid) {
     highsLogUser(highs_model_object.options_.log_options, HighsLogType::kError,
                  "Cannot get ranging without a valid Simplex LP\n");
     return HighsStatus::kError;
   }
   // Aliases
-  const HighsSimplexInfo& simplex_info = ekk_instance.simplex_info_;
-  const SimplexBasis& simplex_basis = ekk_instance.simplex_basis_;
-  const vector<double>& col_scale = highs_model_object.scale_.col_;
-  const vector<double>& row_scale = highs_model_object.scale_.row_;
+  const HighsSimplexInfo& simplex_info = ekk_instance.info_;
+  const SimplexBasis& simplex_basis = ekk_instance.basis_;
+  const vector<double>& col_scale = highs_model_object.scale_.col;
+  const vector<double>& row_scale = highs_model_object.scale_.row;
   const vector<double>& value_ = simplex_info.workValue_;
   const vector<double>& dual_ = simplex_info.workDual_;
   const vector<double>& cost_ = simplex_info.workCost_;
@@ -75,8 +75,8 @@ HighsStatus getRangingData(HighsRanging& ranging,
 
   // Local copies of scalars
 
-  const HighsInt numRow = ekk_instance.simplex_lp_.numRow_;
-  const HighsInt numCol = ekk_instance.simplex_lp_.numCol_;
+  const HighsInt numRow = ekk_instance.lp_.numRow_;
+  const HighsInt numCol = ekk_instance.lp_.numCol_;
   const HighsInt numTotal = numCol + numRow;
   const double H_TT = 1e-13;
   const double H_INF = kHighsInf;

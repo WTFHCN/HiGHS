@@ -27,13 +27,15 @@ struct HighsIterationCounts {
 };
 
 struct HighsScale {
-  bool is_scaled_ = false;
-  double cost_;
-  std::vector<double> col_;
-  std::vector<double> row_;
+  bool is_scaled = false;
+  double cost;
+  std::vector<double> col;
+  std::vector<double> row;
 };
 
 struct HighsSolution {
+  bool value_valid = false;
+  bool dual_valid = false;
   std::vector<double> col_value;
   std::vector<double> col_dual;
   std::vector<double> row_value;
@@ -41,7 +43,7 @@ struct HighsSolution {
 };
 
 struct HighsBasis {
-  bool valid_ = false;
+  bool valid = false;
   std::vector<HighsBasisStatus> col_status;
   std::vector<HighsBasisStatus> row_status;
 };

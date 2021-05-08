@@ -25,25 +25,6 @@ void solve(Highs& highs, std::string presolve, std::string solver,
     printf("Solved %s with presolve: status = %s\n",
            highs.getLp().model_name_.c_str(),
            highs.modelStatusToString(highs.getModelStatus()).c_str());
-  if (highs.getModelStatus() == HighsModelStatus::kUnboundedOrInfeasible) {
-    // The LPs status hasn't been identified, so solve with no
-    // presolve and primal simplex
-    HighsInt simplex_strategy;
-    highs.setOptionValue("presolve", "off");
-    highs.setOptionValue("solver", "simplex");
-    highs.getOptionValue("simplex_strategy", simplex_strategy);
-    highs.setOptionValue("simplex_strategy", kSimplexStrategyPrimal);
-    highs.run();
-    if (dev_run)
-      printf("Solved %s with presolve: status = %s\n",
-             highs.getLp().model_name_.c_str(),
-             highs.modelStatusToString(highs.getModelStatus()).c_str());
-    // Restore presolve and simplex strategy
-    highs.setOptionValue("presolve", presolve);
-    highs.setOptionValue("solver", solver);
-    highs.setOptionValue("simplex_strategy", simplex_strategy);
-  }
-
   REQUIRE(highs.getModelStatus() == require_model_status);
 
   if (require_model_status == HighsModelStatus::kOptimal) {
@@ -104,10 +85,9 @@ void issue280(Highs& highs) {
   // Presolve reduces to empty, so no need to test presolve+IPX
   solve(highs, "on", "simplex", require_model_status, optimal_objective);
   solve(highs, "off", "simplex", require_model_status, optimal_objective);
-  solve(highs, "on", "ipm", require_model_status, optimal_objective);
   special_lps.reportSolution(highs, dev_run);
   // STILL FAILS!!! Reported to Lukas as issue #1 on IPX
-  //    solve(highs, "off", "ipm", require_model_status, optimal_objective);
+  //  solve(highs, "off", "ipm", require_model_status, optimal_objective);
 }
 
 void issue282(Highs& highs) {
@@ -218,7 +198,7 @@ void issue425(Highs& highs) {
   HighsModelStatus require_model_status;
   special_lps.issue425Lp(lp, require_model_status);
   REQUIRE(highs.passModel(lp) == HighsStatus::kOk);
-  solve(highs, "on", "simplex", require_model_status, 0, 0);
+  solve(highs, "on", "simplex", require_model_status, 0, -1);
   solve(highs, "off", "simplex", require_model_status, 0, 3);
   solve(highs, "off", "ipm", require_model_status, 0, 4);
 }
@@ -418,7 +398,7 @@ void singularStartingBasis(Highs& highs) {
   basis.col_status[2] = HighsBasisStatus::kLower;
   basis.row_status[0] = HighsBasisStatus::kUpper;
   basis.row_status[1] = HighsBasisStatus::kUpper;
-  basis.valid_ = true;
+  basis.valid = true;
 
   REQUIRE(highs.setBasis(basis) == HighsStatus::kOk);
 

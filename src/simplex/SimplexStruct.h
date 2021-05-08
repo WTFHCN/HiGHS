@@ -24,7 +24,7 @@
 
 struct SimplexBasis {
   // The basis for the simplex method consists of basicIndex,
-  // nonbasicFlag and nonbasicMove. If HighsSimplexLpStatus has_basis
+  // nonbasicFlag and nonbasicMove. If HighsSimplexStatus has_basis
   // is true then it is assumed that basicIndex_ and nonbasicFlag_ are
   // self-consistent and correpond to the dimensions of an associated
   // HighsLp, but the basis matrix B is not necessarily nonsingular.
@@ -34,7 +34,7 @@ struct SimplexBasis {
   uint64_t hash;
 };
 
-struct HighsSimplexLpStatus {
+struct HighsSimplexStatus {
   // Status of LP solved by the simplex method and its data
   bool initialised = false;
   bool valid = false;

@@ -32,10 +32,10 @@ using std::set;
 
 void HEkkDualRow::setupSlice(HighsInt size) {
   workSize = size;
-  workMove = &ekk_instance_.simplex_basis_.nonbasicMove_[0];
-  workDual = &ekk_instance_.simplex_info_.workDual_[0];
-  workRange = &ekk_instance_.simplex_info_.workRange_[0];
-  work_devex_index = &ekk_instance_.simplex_info_.devex_index_[0];
+  workMove = &ekk_instance_.basis_.nonbasicMove_[0];
+  workDual = &ekk_instance_.info_.workDual_[0];
+  workRange = &ekk_instance_.info_.workRange_[0];
+  work_devex_index = &ekk_instance_.info_.devex_index_[0];
 
   // Allocate spaces
   packCount = 0;
@@ -49,10 +49,9 @@ void HEkkDualRow::setupSlice(HighsInt size) {
 
 void HEkkDualRow::setup() {
   // Setup common vectors
-  const HighsInt numTot =
-      ekk_instance_.simplex_lp_.numCol_ + ekk_instance_.simplex_lp_.numRow_;
+  const HighsInt numTot = ekk_instance_.lp_.numCol_ + ekk_instance_.lp_.numRow_;
   setupSlice(numTot);
-  workNumTotPermutation = &ekk_instance_.simplex_info_.numTotPermutation_[0];
+  workNumTotPermutation = &ekk_instance_.info_.numTotPermutation_[0];
 
   // deleteFreelist() is being called in Phase 1 and Phase 2 since
   // it's in updatePivots(), but create_Freelist() is only called in
@@ -89,10 +88,9 @@ void HEkkDualRow::choosePossible() {
    * Determine the possible variables - candidates for CHUZC
    * TODO: Check with Qi what this is doing
    */
-  const double Ta =
-      ekk_instance_.simplex_info_.update_count < 10
-          ? 1e-9
-          : ekk_instance_.simplex_info_.update_count < 20 ? 3e-8 : 1e-6;
+  const double Ta = ekk_instance_.info_.update_count < 10
+                        ? 1e-9
+                        : ekk_instance_.info_.update_count < 20 ? 3e-8 : 1e-6;
   const double Td = ekk_instance_.options_.dual_feasibility_tolerance;
   const HighsInt move_out = workDelta < 0 ? -1 : 1;
   workTheta = kHighsInf;
@@ -311,8 +309,7 @@ bool HEkkDualRow::chooseFinalWorkGroupQuad() {
     // Check for no change in this loop - to prevent infinite loop
     if ((workCount == prev_workCount) && (prev_selectTheta == selectTheta) &&
         (prev_remainTheta == remainTheta)) {
-      HighsInt num_var =
-          ekk_instance_.simplex_lp_.numCol_ + ekk_instance_.simplex_lp_.numRow_;
+      HighsInt num_var = ekk_instance_.lp_.numCol_ + ekk_instance_.lp_.numRow_;
       debugDualChuzcFailQuad0(ekk_instance_.options_, workCount, workData,
                               num_var, workDual, selectTheta, remainTheta,
                               true);
@@ -327,8 +324,7 @@ bool HEkkDualRow::chooseFinalWorkGroupQuad() {
   }
   // Check that at least one group has been identified
   if ((HighsInt)workGroup.size() <= 1) {
-    HighsInt num_var =
-        ekk_instance_.simplex_lp_.numCol_ + ekk_instance_.simplex_lp_.numRow_;
+    HighsInt num_var = ekk_instance_.lp_.numCol_ + ekk_instance_.lp_.numRow_;
     debugDualChuzcFailQuad1(ekk_instance_.options_, workCount, workData,
                             num_var, workDual, selectTheta, true);
     return false;
@@ -364,8 +360,7 @@ bool HEkkDualRow::chooseFinalWorkGroupHeap() {
   alt_workGroup.clear();
   alt_workGroup.push_back(alt_workCount);
   if (heap_num_en <= 0) {
-    HighsInt num_var =
-        ekk_instance_.simplex_lp_.numCol_ + ekk_instance_.simplex_lp_.numRow_;
+    HighsInt num_var = ekk_instance_.lp_.numCol_ + ekk_instance_.lp_.numRow_;
     // No entries in heap = > failure
     debugDualChuzcFailHeap(ekk_instance_.options_, alt_workCount,
                            original_workData, num_var, workDual, selectTheta,
@@ -436,7 +431,7 @@ void HEkkDualRow::chooseFinalLargeAlpha(
 }
 
 void HEkkDualRow::updateFlip(HVector* bfrtColumn) {
-  double* workDual = &ekk_instance_.simplex_info_.workDual_[0];
+  double* workDual = &ekk_instance_.info_.workDual_[0];
   double dual_objective_value_change = 0;
   bfrtColumn->clear();
   for (HighsInt i = 0; i < workCount; i++) {
@@ -448,39 +443,37 @@ void HEkkDualRow::updateFlip(HVector* bfrtColumn) {
     ekk_instance_.flipBound(iCol);
     ekk_instance_.matrix_.collect_aj(*bfrtColumn, iCol, change);
   }
-  ekk_instance_.simplex_info_.updated_dual_objective_value +=
+  ekk_instance_.info_.updated_dual_objective_value +=
       dual_objective_value_change;
 }
 
 void HEkkDualRow::updateDual(double theta) {
   analysis->simplexTimerStart(UpdateDualClock);
-  double* workDual = &ekk_instance_.simplex_info_.workDual_[0];
+  double* workDual = &ekk_instance_.info_.workDual_[0];
   double dual_objective_value_change = 0;
   for (HighsInt i = 0; i < packCount; i++) {
     workDual[packIndex[i]] -= theta * packValue[i];
     // Identify the change to the dual objective
     HighsInt iCol = packIndex[i];
     const double delta_dual = theta * packValue[i];
-    const double local_value = ekk_instance_.simplex_info_.workValue_[iCol];
+    const double local_value = ekk_instance_.info_.workValue_[iCol];
     double local_dual_objective_change =
-        ekk_instance_.simplex_basis_.nonbasicFlag_[iCol] *
-        (-local_value * delta_dual);
+        ekk_instance_.basis_.nonbasicFlag_[iCol] * (-local_value * delta_dual);
     local_dual_objective_change *= ekk_instance_.cost_scale_;
     dual_objective_value_change += local_dual_objective_change;
   }
-  ekk_instance_.simplex_info_.updated_dual_objective_value +=
+  ekk_instance_.info_.updated_dual_objective_value +=
       dual_objective_value_change;
   analysis->simplexTimerStop(UpdateDualClock);
 }
 
 void HEkkDualRow::createFreelist() {
   freeList.clear();
-  for (HighsInt i = 0; i < ekk_instance_.simplex_lp_.numCol_ +
-                               ekk_instance_.simplex_lp_.numRow_;
-       i++) {
-    if (ekk_instance_.simplex_basis_.nonbasicFlag_[i] &&
-        highs_isInfinity(-ekk_instance_.simplex_info_.workLower_[i]) &&
-        highs_isInfinity(ekk_instance_.simplex_info_.workUpper_[i]))
+  for (HighsInt i = 0;
+       i < ekk_instance_.lp_.numCol_ + ekk_instance_.lp_.numRow_; i++) {
+    if (ekk_instance_.basis_.nonbasicFlag_[i] &&
+        highs_isInfinity(-ekk_instance_.info_.workLower_[i]) &&
+        highs_isInfinity(ekk_instance_.info_.workUpper_[i]))
       freeList.insert(i);
   }
   //  debugFreeListNumEntries(ekk_instance_, freeList);
@@ -489,21 +482,20 @@ void HEkkDualRow::createFreelist() {
 void HEkkDualRow::createFreemove(HVector* row_ep) {
   // TODO: Check with Qi what this is doing and why it's expensive
   if (!freeList.empty()) {
-    double Ta =
-        ekk_instance_.simplex_info_.update_count < 10
-            ? 1e-9
-            : ekk_instance_.simplex_info_.update_count < 20 ? 3e-8 : 1e-6;
+    double Ta = ekk_instance_.info_.update_count < 10
+                    ? 1e-9
+                    : ekk_instance_.info_.update_count < 20 ? 3e-8 : 1e-6;
     HighsInt move_out = workDelta < 0 ? -1 : 1;
     set<HighsInt>::iterator sit;
     for (sit = freeList.begin(); sit != freeList.end(); sit++) {
       HighsInt iCol = *sit;
-      assert(iCol < ekk_instance_.simplex_lp_.numCol_);
+      assert(iCol < ekk_instance_.lp_.numCol_);
       double alpha = ekk_instance_.matrix_.compute_dot(*row_ep, iCol);
       if (fabs(alpha) > Ta) {
         if (alpha * move_out > 0)
-          ekk_instance_.simplex_basis_.nonbasicMove_[iCol] = 1;
+          ekk_instance_.basis_.nonbasicMove_[iCol] = 1;
         else
-          ekk_instance_.simplex_basis_.nonbasicMove_[iCol] = -1;
+          ekk_instance_.basis_.nonbasicMove_[iCol] = -1;
       }
     }
   }
@@ -513,8 +505,8 @@ void HEkkDualRow::deleteFreemove() {
     set<HighsInt>::iterator sit;
     for (sit = freeList.begin(); sit != freeList.end(); sit++) {
       HighsInt iCol = *sit;
-      assert(iCol < ekk_instance_.simplex_lp_.numCol_);
-      ekk_instance_.simplex_basis_.nonbasicMove_[iCol] = 0;
+      assert(iCol < ekk_instance_.lp_.numCol_);
+      ekk_instance_.basis_.nonbasicMove_[iCol] = 0;
     }
   }
 }
@@ -530,7 +522,7 @@ void HEkkDualRow::computeDevexWeight(const HighsInt slice) {
   computed_edge_weight = 0;
   for (HighsInt el_n = 0; el_n < packCount; el_n++) {
     HighsInt vr_n = packIndex[el_n];
-    if (!ekk_instance_.simplex_basis_.nonbasicFlag_[vr_n]) {
+    if (!ekk_instance_.basis_.nonbasicFlag_[vr_n]) {
       //      printf("Basic variable %" HIGHSINT_FORMAT " in packIndex is
       //      skipped\n", vr_n);
       continue;

@@ -24,9 +24,8 @@
 using free_format_parser::HMpsFF;
 
 FilereaderRetcode FilereaderMps::readModelFromFile(const HighsOptions& options,
+                                                   const std::string filename,
                                                    HighsLp& model) {
-  const std::string filename = options.model_file;
-
   // if free format parser
   // Parse file and return status.
   if (options.mps_parser_type_free) {

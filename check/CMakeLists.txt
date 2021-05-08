@@ -31,6 +31,7 @@ set(TEST_SOURCES
     TestLpOrientation.cpp
     TestRays.cpp
     TestRanging.cpp
+    TestThrow.cpp
     Avgas.cpp)
 
 if (NOT APPLE)
@@ -149,7 +150,7 @@ set(successInstances
     "80bau3b\;3839\; 9.8722419241\;"
     "adlittle\;83\; 2.2549496316\;"
     "afiro\;22\;-4.6475314286\;"
-#    "etamacro\;507\;-7.5571523130\;"
+    "etamacro\;502\;-7.5571523130\;"
     "greenbea\;6077\;-7.2555248130\;"
     "shell\;630\; 1.2088253460\;"
     "stair\;563\;-2.5126695119\;"

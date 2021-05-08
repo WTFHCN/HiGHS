@@ -24,7 +24,7 @@
 
 class HighsOptions;
 
-enum class InfoStatus { kOk = 0, kUnknownInfo, kIllegalValue };
+enum class InfoStatus { kOk = 0, kUnknownInfo, kIllegalValue, kUnavailable };
 
 class InfoRecord {
  public:
@@ -42,6 +42,21 @@ class InfoRecord {
   }
 
   virtual ~InfoRecord() {}
+};
+
+class InfoRecordInt64 : public InfoRecord {
+ public:
+  int64_t* value;
+  int64_t default_value;
+  InfoRecordInt64(std::string Xname, std::string Xdescription, bool Xadvanced,
+                  int64_t* Xvalue_pointer, int64_t Xdefault_value)
+      : InfoRecord(HighsInfoType::kInt64, Xname, Xdescription, Xadvanced) {
+    value = Xvalue_pointer;
+    default_value = Xdefault_value;
+    *value = default_value;
+  }
+
+  virtual ~InfoRecordInt64() {}
 };
 
 class InfoRecordInt : public InfoRecord {
@@ -84,18 +99,24 @@ InfoStatus checkInfo(const InfoRecordInt& info);
 InfoStatus checkInfo(const InfoRecordDouble& info);
 
 InfoStatus getLocalInfoValue(const HighsOptions& options,
-                             const std::string& name,
+                             const std::string& name, const bool valid,
+                             const std::vector<InfoRecord*>& info_records,
+                             int64_t& value);
+InfoStatus getLocalInfoValue(const HighsOptions& options,
+                             const std::string& name, const bool valid,
                              const std::vector<InfoRecord*>& info_records,
                              HighsInt& value);
 InfoStatus getLocalInfoValue(const HighsOptions& options,
-                             const std::string& name,
+                             const std::string& name, const bool valid,
                              const std::vector<InfoRecord*>& info_records,
                              double& value);
 
-HighsStatus writeInfoToFile(FILE* file,
+HighsStatus writeInfoToFile(FILE* file, const bool valid,
                             const std::vector<InfoRecord*>& info_records,
                             const bool html = false);
 void reportInfo(FILE* file, const std::vector<InfoRecord*>& info_records,
+                const bool html = false);
+void reportInfo(FILE* file, const InfoRecordInt64& info,
                 const bool html = false);
 void reportInfo(FILE* file, const InfoRecordInt& info, const bool html = false);
 void reportInfo(FILE* file, const InfoRecordDouble& info,
@@ -107,6 +128,7 @@ void reportInfo(FILE* file, const InfoRecordDouble& info,
 // todo: when creating the new info don't forget underscores for class
 // variables but no underscores for struct
 struct HighsInfoStruct {
+  bool valid;
   int64_t mip_node_count;
   HighsInt simplex_iteration_count;
   HighsInt ipm_iteration_count;
@@ -166,6 +188,7 @@ class HighsInfo : public HighsInfoStruct {
   }
 
   void initRecords() {
+    InfoRecordInt64* record_int64;
     InfoRecordInt* record_int;
     InfoRecordDouble* record_double;
     bool advanced;
@@ -203,6 +226,20 @@ class HighsInfo : public HighsInfoStruct {
     record_double = new InfoRecordDouble("objective_function_value",
                                          "Objective function value", advanced,
                                          &objective_function_value, 0);
+    records.push_back(record_double);
+
+    record_int64 =
+        new InfoRecordInt64("mip_node_count", "MIP solver node count", advanced,
+                            &mip_node_count, 0);
+    records.push_back(record_int64);
+
+    record_double =
+        new InfoRecordDouble("mip_dual_bound", "MIP solver dual bound",
+                             advanced, &mip_dual_bound, 0);
+    records.push_back(record_double);
+
+    record_double = new InfoRecordDouble("mip_gap", "MIP solver gap (%)",
+                                         advanced, &mip_gap, 0);
     records.push_back(record_double);
 
     record_int = new InfoRecordInt("num_primal_infeasibilities",

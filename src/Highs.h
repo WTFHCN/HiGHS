@@ -931,23 +931,25 @@ class Highs {
   HighsTimer timer_;
 
   HighsOptions options_;
+  HighsIterationCounts iteration_counts_;
   HighsInfo info_;
 
-  // Have copies in the HiGHS class so that const references to them
-  // can be passed back, regardless of whether there is a HMO, or not,
-  // and also to make objective_value and iteration_count independent
-  // of whether simplex or IMP is used as a solver.
   HighsModelStatus model_status_ = HighsModelStatus::kNotset;
   HighsModelStatus scaled_model_status_ = HighsModelStatus::kNotset;
 
-  // Each HighsModelObject holds a const ref to its lp_. There are potentially
-  // several hmos_ to allow for the solution of several different modified
-  // versions of the original LP. For instance different levels of presolve.
+  // Each HighsModelObject holds a const ref to its lp_. There are at most two
+  // entries in hmos_: the original LP and the LP reduced by presolve
   std::vector<HighsModelObject> hmos_;
 
   // Record of maximum number of OMP threads. If OMP is available then
   // it's set to the correct positive number in Highs::run()
   HighsInt omp_max_threads = 0;
+
+  // This is strictly for debugging. It's used to check whether
+  // returnFromRun() was called after the previous call to
+  // Highs::run() and, assuming that this is always done, it checks
+  // whether Highs::run() is called recursively.
+  bool called_return_from_run = true;
 
   HighsStatus callSolveLp(const HighsInt model_index, const string message);
   HighsStatus callSolveMip();
@@ -973,7 +975,8 @@ class Highs {
 
   void newHighsBasis();
   void forceHighsSolutionBasisSize();
-  bool getHighsModelStatusAndInfo(const HighsInt model_index);
+  void setHighsModelStatusAndInfo(const HighsModelStatus model_status);
+  void setHighsModelStatusBasisSolutionAndInfo();
 
   HighsStatus reset();
 
@@ -981,6 +984,7 @@ class Highs {
   void clearSolution();
   void clearBasis();
   void clearInfo();
+  void noSolution();
 
   void underDevelopmentLogMessage(const string method_name);
   HighsStatus returnFromRun(const HighsStatus return_status);

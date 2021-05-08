@@ -520,8 +520,7 @@ void HighsLpRelaxation::storeDualUBProof() {
   dualproofinds.clear();
   dualproofvals.clear();
   dualproofrhs = kHighsInf;
-  assert(lpsolver.getModelStatus(true) ==
-         HighsModelStatus::kReachedDualObjectiveValueUpperBound);
+  assert(lpsolver.getModelStatus(true) == HighsModelStatus::kObjectiveBound);
 
   HighsInt numrow = lpsolver.getNumRows();
   bool hasdualray = false;
@@ -566,7 +565,7 @@ void HighsLpRelaxation::storeDualUBProof() {
 
   assert(scale == 1.0);
 
-  HighsCDouble upper = lpsolver.getOptions().dual_objective_value_upper_bound;
+  HighsCDouble upper = lpsolver.getOptions().objective_bound;
   for (HighsInt i = 0; i != lp.numRow_; ++i) {
     if (dualray[i] == 0.0) continue;
 
@@ -668,17 +667,11 @@ void HighsLpRelaxation::recoverBasis() {
 }
 
 HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
-  HighsStatus callstatus;
-
   lpsolver.setOptionValue(
       "time_limit", lpsolver.getRunTime() + mipsolver.options_mip_->time_limit -
                         mipsolver.timer_.read(mipsolver.timer_.solve_clock));
 
-  try {
-    callstatus = lpsolver.run();
-  } catch (const std::runtime_error&) {
-    callstatus = HighsStatus::kError;
-  }
+  HighsStatus callstatus = lpsolver.run();
 
   const HighsInfo& info = lpsolver.getInfo();
   HighsInt itercount = std::max(HighsInt{0}, info.simplex_iteration_count);
@@ -715,7 +708,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
 
   HighsModelStatus scaledmodelstatus = lpsolver.getModelStatus(true);
   switch (scaledmodelstatus) {
-    case HighsModelStatus::kReachedDualObjectiveValueUpperBound:
+    case HighsModelStatus::kObjectiveBound:
       storeDualUBProof();
       if (checkDualProof()) return Status::kInfeasible;
 
@@ -793,7 +786,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
         return Status::kUnscaledDualFeasible;
 
       return Status::kUnscaledInfeasible;
-    case HighsModelStatus::kReachedIterationLimit: {
+    case HighsModelStatus::kIterationLimit: {
       if (resolve_on_error) {
         // printf(
         //     "error: lpsolver reached iteration limit, resolving with basis "
@@ -818,7 +811,7 @@ HighsLpRelaxation::Status HighsLpRelaxation::run(bool resolve_on_error) {
     //  if (lpsolver.getModelStatus(false) == scaledmodelstatus)
     //    return Status::kInfeasible;
     //  return Status::kError;
-    case HighsModelStatus::kReachedTimeLimit:
+    case HighsModelStatus::kTimeLimit:
       return Status::kError;
     default:
       // printf("error: lpsolver stopped with unexpected status %"

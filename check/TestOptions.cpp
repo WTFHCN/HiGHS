@@ -14,9 +14,9 @@ TEST_CASE("internal-options", "[highs_options]") {
       checkOptions(options.log_options, options.records);
   REQUIRE(return_status == OptionStatus::kOk);
 
-  options.options_file = std::string(HIGHS_DIR) + "/check/sample_options_file";
+  std::string filename = std::string(HIGHS_DIR) + "/check/sample_options_file";
 
-  bool success = loadOptionsFromFile(options);
+  bool success = loadOptionsFromFile(options, filename);
   REQUIRE(success == true);
   REQUIRE(options.presolve == kHighsOnString);
   REQUIRE(options.small_matrix_value == 0.001);
@@ -126,25 +126,25 @@ TEST_CASE("internal-options", "[highs_options]") {
 
   // Check setting string options
 
-  return_status = setLocalOptionValue(options.log_options, presolve_string,
+  return_status = setLocalOptionValue(options.log_options, kPresolveString,
                                       options.records, "ml.mps");
   REQUIRE(return_status == OptionStatus::kIllegalValue);
 
   std::string model_file = "ml.mps";
-  return_status = setLocalOptionValue(options.log_options, presolve_string,
+  return_status = setLocalOptionValue(options.log_options, kPresolveString,
                                       options.records, model_file);
   REQUIRE(return_status == OptionStatus::kIllegalValue);
 
-  return_status = setLocalOptionValue(options.log_options, presolve_string,
+  return_status = setLocalOptionValue(options.log_options, kPresolveString,
                                       options.records, "off");
   REQUIRE(return_status == OptionStatus::kOk);
 
   std::string presolve = "choose";
-  return_status = setLocalOptionValue(options.log_options, presolve_string,
+  return_status = setLocalOptionValue(options.log_options, kPresolveString,
                                       options.records, presolve);
   REQUIRE(return_status == OptionStatus::kOk);
 
-  return_status = setLocalOptionValue(options.log_options, model_file_string,
+  return_status = setLocalOptionValue(options.log_options, kModelFileString,
                                       options.records, model_file);
   REQUIRE(return_status == OptionStatus::kUnknownOption);
 
@@ -266,21 +266,21 @@ TEST_CASE("highs-options", "[highs_options]") {
 
   // Check setting string options
 
-  return_status = highs.setOptionValue(presolve_string, "ml.mps");
+  return_status = highs.setOptionValue(kPresolveString, "ml.mps");
   REQUIRE(return_status == HighsStatus::kError);
 
   std::string model_file = "ml.mps";
-  return_status = highs.setOptionValue(presolve_string, model_file);
+  return_status = highs.setOptionValue(kPresolveString, model_file);
   REQUIRE(return_status == HighsStatus::kError);
 
-  return_status = highs.setOptionValue(presolve_string, "off");
+  return_status = highs.setOptionValue(kPresolveString, "off");
   REQUIRE(return_status == HighsStatus::kOk);
 
   std::string presolve = "choose";
-  return_status = highs.setOptionValue(presolve_string, presolve);
+  return_status = highs.setOptionValue(kPresolveString, presolve);
   REQUIRE(return_status == HighsStatus::kOk);
 
-  return_status = highs.setOptionValue(model_file_string, model_file);
+  return_status = highs.setOptionValue(kModelFileString, model_file);
   REQUIRE(return_status == HighsStatus::kError);
 
   return_status = highs.writeOptions("Highs.set");

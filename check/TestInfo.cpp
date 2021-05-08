@@ -22,6 +22,24 @@ TEST_CASE("highs-info", "[highs_info]") {
   HighsStatus return_status = highs.readModel(filename);
   REQUIRE(return_status == HighsStatus::kOk);
 
+  // Cannot write info since not valid before run()
+  return_status = highs.writeInfo("");
+  REQUIRE(return_status == HighsStatus::kWarning);
+
+#ifdef IPX_ON
+  return_status = highs.setOptionValue("solver", "ipm");
+  REQUIRE(return_status == HighsStatus::kOk);
+#endif
+
+  // Info not valid before run()
+  double objective_function_value;
+  return_status =
+      highs.getInfoValue("objective_function_value", objective_function_value);
+  REQUIRE(return_status == HighsStatus::kWarning);
+
+  return_status = highs.run();
+  REQUIRE(return_status == HighsStatus::kOk);
+
   if (dev_run) {
     return_status = highs.writeInfo("");
     REQUIRE(return_status == HighsStatus::kOk);
@@ -31,19 +49,12 @@ TEST_CASE("highs-info", "[highs_info]") {
   return_status = highs.writeInfo(highs_info_file);
   REQUIRE(return_status == HighsStatus::kOk);
 
-#ifdef IPX_ON
-  return_status = highs.setOptionValue("solver", "ipm");
-  REQUIRE(return_status == HighsStatus::kOk);
-#endif
-
-  return_status = highs.run();
-  REQUIRE(return_status == HighsStatus::kOk);
-
-  double objective_function_value;
+  // Wrong name for objective
   return_status =
       highs.getInfoValue("objective_value", objective_function_value);
   REQUIRE(return_status == HighsStatus::kError);
 
+  // Right name for objective
   return_status =
       highs.getInfoValue("objective_function_value", objective_function_value);
   REQUIRE(return_status == HighsStatus::kOk);
@@ -53,10 +64,12 @@ TEST_CASE("highs-info", "[highs_info]") {
            objective_function_value);
 
   HighsInt simplex_iteration_count;
+  // Wrong name for simplex iteration count
   return_status =
       highs.getInfoValue("iteration_count", simplex_iteration_count);
   REQUIRE(return_status == HighsStatus::kError);
 
+  // Right name for simplex iteration count
   return_status =
       highs.getInfoValue("simplex_iteration_count", simplex_iteration_count);
   REQUIRE(return_status == HighsStatus::kOk);

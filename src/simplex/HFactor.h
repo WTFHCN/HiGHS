@@ -34,58 +34,52 @@ using std::vector;
 class HVector;
 
 enum UPDATE_METHOD {
-  UPDATE_METHOD_FT = 1,
-  UPDATE_METHOD_PF = 2,
-  UPDATE_METHOD_MPF = 3,
-  UPDATE_METHOD_APF = 4
+  kUpdateMethodFt = 1,
+  kUpdateMethodPf = 2,
+  kUpdateMethodMpf = 3,
+  kUpdateMethodApf = 4
 };
 /**
  * Limits and default value of pivoting threshold
  */
-const double min_pivot_threshold = 8e-4;
-const double default_pivot_threshold = 0.1;
-const double pivot_threshold_change_factor = 5.0;
-const double max_pivot_threshold = 0.5;
+const double kMinPivotThreshold = 8e-4;
+const double kDefaultPivotThreshold = 0.1;
+const double kPivotThresholdChangeFactor = 5.0;
+const double kMaxPivotThreshold = 0.5;
 /**
  * Limits and default value of minimum absolute pivot
  */
-const double min_pivot_tolerance = 0;
-const double default_pivot_tolerance = 1e-10;
-const double max_pivot_tolerance = 1.0;
+const double kMinPivotTolerance = 0;
+const double kDefaultPivotTolerance = 1e-10;
+const double kMaxPivotTolerance = 1.0;
 /**
  * Necessary thresholds for historical density to trigger
  * hyper-sparse TRANs,
  */
-const double hyperFTRANL = 0.15;
-const double hyperFTRANU = 0.10;
-const double hyperBTRANL = 0.10;
-const double hyperBTRANU = 0.15;
+const double kHyperFtranL = 0.15;
+const double kHyperFtranU = 0.10;
+const double kHyperBtranL = 0.10;
+const double kHyperBtranU = 0.15;
 /**
  * Necessary threshold for RHS density to trigger hyper-sparse TRANs,
  */
-const double hyperCANCEL = 0.05;
+const double kHyperCancel = 0.05;
 /**
  * Threshold for result density for it to be considered as
  * hyper-sparse - only for reporting
  */
-const double hyperRESULT = 0.10;
+const double kHyperResult = 0.10;
 
 /**
  * Parameters for reinversion on synthetic clock
  */
-const double original_multi_build_syntheticTick_mu = 1.5;
-const double multi_build_syntheticTick_mu = 1.0;
-// original_multi_build_syntheticTick_mu;//
-const double numerical_trouble_tolerance = 1e-7;
-const double original_multi_numerical_trouble_tolerance = 1e-8;
-const double multi_numerical_trouble_tolerance = 1e-7;
-// original_multi_numerical_trouble_tolerance;
+const double kMultiBuildSyntheticTickMu = 1.0;
+const double kNumericalTroubleTolerance = 1e-7;
+const double kMultiNumericalTroubleTolerance = 1e-7;
 
-const HighsInt synthetic_tick_reinversion_min_update_count = 50;
-const HighsInt original_multi_synthetic_tick_reinversion_min_update_count = 201;
-const HighsInt multi_synthetic_tick_reinversion_min_update_count =
-    synthetic_tick_reinversion_min_update_count;
-// original_multi_synthetic_tick_reinversion_min_update_count;
+const HighsInt kSyntheticTickReinversionMinUpdateCount = 50;
+const HighsInt kMultiSyntheticTickReinversionMinUpdateCount =
+    kSyntheticTickReinversionMinUpdateCount;
 
 /**
  * @brief Basis matrix factorization, update and solves for HiGHS
@@ -141,13 +135,13 @@ class HFactor {
       const HighsInt* Aindex,  //!< Row indices of constraint matrix
       const double* Avalue,    //!< Row values of constraint matrix
       HighsInt* baseIndex,     //!< Indices of basic variables
-      double pivot_threshold = default_pivot_threshold,  //!< Pivoting threshold
-      double pivot_tolerance = default_pivot_tolerance,  //!< Min absolute pivot
+      double pivot_threshold = kDefaultPivotThreshold,  //!< Pivoting threshold
+      double pivot_tolerance = kDefaultPivotTolerance,  //!< Min absolute pivot
       HighsInt highs_debug_level = kHighsDebugLevelMin,
       bool output_flag = false, FILE* logfile = NULL,
       bool log_to_console = true, int log_dev_level = 0,
       const bool use_original_HFactor_logic = true,
-      const HighsInt updateMethod = UPDATE_METHOD_FT);
+      const HighsInt updateMethod = kUpdateMethodFt);
 
   /**
    * @brief Form \f$PBQ=LU\f$ for basis matrix \f$B\f$ or report degree of rank
@@ -186,12 +180,12 @@ class HFactor {
    * @brief Sets pivoting threshold
    */
   bool setPivotThreshold(
-      const double new_pivot_threshold = default_pivot_threshold);
+      const double new_pivot_threshold = kDefaultPivotThreshold);
   /**
    * @brief Sets minimum absolute pivot
    */
   bool setMinAbsPivot(
-      const double new_pivot_tolerance = default_pivot_tolerance);
+      const double new_pivot_tolerance = kDefaultPivotTolerance);
 
   /**
    * @brief Wall clock time for INVERT
@@ -201,7 +195,7 @@ class HFactor {
   /**
    * @brief The synthetic clock for INVERT
    */
-  double build_syntheticTick;
+  double build_synthetic_tick;
 
   // Rank deficiency information
 

@@ -203,11 +203,11 @@ void HighsSimplexAnalysis::setup(const HighsLp& lp, const HighsOptions& options,
         if ((k == ANALYSIS_OPERATION_TYPE_BTRAN_EP) ||
             (k == ANALYSIS_OPERATION_TYPE_BTRAN_BASIC_FEASIBILITY_CHANGE) ||
             (k == ANALYSIS_OPERATION_TYPE_BTRAN_FULL)) {
-          AnIter->AnIterOpHyperCANCEL = hyperCANCEL;
-          AnIter->AnIterOpHyperTRAN = hyperBTRANU;
+          AnIter->AnIterOpHyperCANCEL = kHyperCancel;
+          AnIter->AnIterOpHyperTRAN = kHyperBtranU;
         } else {
-          AnIter->AnIterOpHyperCANCEL = hyperCANCEL;
-          AnIter->AnIterOpHyperTRAN = hyperFTRANL;
+          AnIter->AnIterOpHyperCANCEL = kHyperCancel;
+          AnIter->AnIterOpHyperTRAN = kHyperFtranL;
         }
         AnIter->AnIterOpRsDim = numRow;
       }
@@ -239,8 +239,8 @@ void HighsSimplexAnalysis::setup(const HighsLp& lp, const HighsOptions& options,
     initialiseValueDistribution("Simplex pivot summary", "", 1e-8, 1e16, 10.0,
                                 simplex_pivot_distribution);
     initialiseValueDistribution("Factor pivot threshold summary", "",
-                                min_pivot_threshold, max_pivot_threshold,
-                                pivot_threshold_change_factor,
+                                kMinPivotThreshold, kMaxPivotThreshold,
+                                kPivotThresholdChangeFactor,
                                 factor_pivot_threshold_distribution);
     initialiseValueDistribution("Numerical trouble summary", "", 1e-16, 1.0,
                                 10.0, numerical_trouble_distribution);
@@ -753,7 +753,7 @@ void HighsSimplexAnalysis::operationRecordAfter(const HighsInt operation_type,
                                                 const HighsInt result_count) {
   AnIterOpRec& AnIter = AnIterOp[operation_type];
   const double result_density = 1.0 * result_count / AnIter.AnIterOpRsDim;
-  if (result_density <= hyperRESULT) AnIter.AnIterOpNumHyperRs++;
+  if (result_density <= kHyperResult) AnIter.AnIterOpNumHyperRs++;
   if (result_density > 0) {
     AnIter.AnIterOpSumLog10RsDensity += log(result_density) / log(10.0);
   } else {
@@ -1217,15 +1217,15 @@ void HighsSimplexAnalysis::reportAlgorithmPhaseIterationObjective(
   if (header) {
     analysis_log << "       Iteration        Objective    ";
   } else {
-    std::string algorithm;
+    std::string algorithm_name;
     if (dualAlgorithm()) {
-      algorithm = "Du";
+      algorithm_name = "Du";
     } else {
-      algorithm = "Pr";
+      algorithm_name = "Pr";
     }
     analysis_log << highsFormatToString(
         "%2sPh%1" HIGHSINT_FORMAT " %10" HIGHSINT_FORMAT " %20.10e",
-        algorithm.c_str(), solve_phase, simplex_iteration_count,
+        algorithm_name.c_str(), solve_phase, simplex_iteration_count,
         objective_value);
   }
 }

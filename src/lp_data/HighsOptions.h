@@ -236,33 +236,30 @@ void reportOption(FILE* file, const OptionRecordDouble& option,
 void reportOption(FILE* file, const OptionRecordString& option,
                   const bool report_only_non_default_values, const bool html);
 
-const string simplex_string = "simplex";
-const string ipm_string = "ipm";
-const string mip_string = "mip";
+const string kSimplexString = "simplex";
+const string kIpmString = "ipm";
 
-const HighsInt KEEP_N_ROWS_DELETE_ROWS = -1;
-const HighsInt KEEP_N_ROWS_DELETE_ENTRIES = 0;
-const HighsInt KEEP_N_ROWS_KEEP_ROWS = 1;
+const HighsInt kKeepNRowsDeleteRows = -1;
+const HighsInt kKeepNRowsDeleteEntries = 0;
+const HighsInt kKeepNRowsKeepRows = 1;
 
 // Strings for command line options
-const string model_file_string = "model_file";
-const string presolve_string = "presolve";
-const string solver_string = "solver";
-const string parallel_string = "parallel";
-const string time_limit_string = "time_limit";
-const string options_file_string = "options_file";
+const string kModelFileString = "model_file";
+const string kPresolveString = "presolve";
+const string kSolverString = "solver";
+const string kParallelString = "parallel";
+const string kTimeLimitString = "time_limit";
+const string kOptionsFileString = "options_file";
 
 // String for HiGHS log file option
-const string log_file_string = "log_file";
+const string kLogFileString = "log_file";
 
 struct HighsOptionsStruct {
-  // Options read from the command line
-  std::string model_file;
+  // Run-time options read from the command line
   std::string presolve;
   std::string solver;
   std::string parallel;
   double time_limit;
-  std::string options_file;
 
   // Options read from the file
   double infinite_cost;
@@ -272,7 +269,8 @@ struct HighsOptionsStruct {
   double primal_feasibility_tolerance;
   double dual_feasibility_tolerance;
   double ipm_optimality_tolerance;
-  double dual_objective_value_upper_bound;
+  double objective_bound;
+  double objective_target;
   HighsInt highs_random_seed;
   HighsInt highs_debug_level;
   HighsInt highs_analysis_level;
@@ -297,6 +295,8 @@ struct HighsOptionsStruct {
   // Advanced options
   HighsInt log_dev_level;
   bool run_crossover;
+  bool allow_unbounded_or_infeasible;
+  bool use_implied_bounds_from_presolve;
   bool mps_parser_type_free;
   HighsInt keep_n_rows;
   HighsInt allowed_simplex_matrix_scale_factor;
@@ -400,30 +400,22 @@ class HighsOptions : public HighsOptionsStruct {
     bool advanced;
     advanced = false;
     // Options read from the command line
-    record_string =
-        new OptionRecordString(model_file_string, "Model file", advanced,
-                               &model_file, kHighsFilenameDefault);
-    records.push_back(record_string);
     record_string = new OptionRecordString(
-        presolve_string, "Presolve option: \"off\", \"choose\" or \"on\"",
+        kPresolveString, "Presolve option: \"off\", \"choose\" or \"on\"",
         advanced, &presolve, kHighsChooseString);
     records.push_back(record_string);
     record_string = new OptionRecordString(
-        solver_string, "Solver option: \"simplex\", \"choose\" or \"ipm\"",
+        kSolverString, "Solver option: \"simplex\", \"choose\" or \"ipm\"",
         advanced, &solver, kHighsChooseString);
     records.push_back(record_string);
     record_string = new OptionRecordString(
-        parallel_string, "Parallel option: \"off\", \"choose\" or \"on\"",
+        kParallelString, "Parallel option: \"off\", \"choose\" or \"on\"",
         advanced, &parallel, kHighsChooseString);
     records.push_back(record_string);
     record_double =
-        new OptionRecordDouble(time_limit_string, "Time limit", advanced,
+        new OptionRecordDouble(kTimeLimitString, "Time limit", advanced,
                                &time_limit, 0, kHighsInf, kHighsInf);
     records.push_back(record_double);
-    record_string =
-        new OptionRecordString(options_file_string, "Options file", advanced,
-                               &options_file, kHighsFilenameDefault);
-    records.push_back(record_string);
     // Options read from the file
     record_double =
         new OptionRecordDouble("infinite_cost",
@@ -469,11 +461,13 @@ class HighsOptions : public HighsOptionsStruct {
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
-        "dual_objective_value_upper_bound",
-        "Upper bound on objective value for dual simplex: algorithm terminates "
-        "if reached",
-        advanced, &dual_objective_value_upper_bound, -kHighsInf, kHighsInf,
-        kHighsInf);
+        "objective_bound", "Objective bound for termination", advanced,
+        &objective_bound, -kHighsInf, kHighsInf, kHighsInf);
+    records.push_back(record_double);
+
+    record_double = new OptionRecordDouble(
+        "objective_target", "Objective target for termination", advanced,
+        &objective_target, -kHighsInf, -kHighsInf, kHighsInf);
     records.push_back(record_double);
 
     record_int =
@@ -574,8 +568,8 @@ class HighsOptions : public HighsOptionsStruct {
                                &solution_file, kHighsFilenameDefault);
     records.push_back(record_string);
 
-    record_string = new OptionRecordString(log_file_string, "Log file",
-                                           advanced, &log_file, "Highs.log");
+    record_string = new OptionRecordString(kLogFileString, "Log file", advanced,
+                                           &log_file, "Highs.log");
     records.push_back(record_string);
 
     record_bool =
@@ -674,6 +668,18 @@ class HighsOptions : public HighsOptionsStruct {
                                        advanced, &run_crossover, true);
     records.push_back(record_bool);
 
+    record_bool =
+        new OptionRecordBool("allow_unbounded_or_infeasible",
+                             "Allow ModelStatus::kUnboundedOrInfeasible",
+                             advanced, &allow_unbounded_or_infeasible, false);
+    records.push_back(record_bool);
+
+    record_bool = new OptionRecordBool(
+        "use_implied_bounds_from_presolve",
+        "Use relaxed implied bounds from presolve", advanced,
+        &use_implied_bounds_from_presolve, false);
+    records.push_back(record_bool);
+
     record_bool = new OptionRecordBool("mps_parser_type_free",
                                        "Use the free format MPS file reader",
                                        advanced, &mps_parser_type_free, true);
@@ -682,8 +688,8 @@ class HighsOptions : public HighsOptionsStruct {
         new OptionRecordInt("keep_n_rows",
                             "For multiple N-rows in MPS files: delete rows / "
                             "delete entries / keep rows (-1/0/1)",
-                            advanced, &keep_n_rows, KEEP_N_ROWS_DELETE_ROWS,
-                            KEEP_N_ROWS_DELETE_ROWS, KEEP_N_ROWS_KEEP_ROWS);
+                            advanced, &keep_n_rows, kKeepNRowsDeleteRows,
+                            kKeepNRowsDeleteRows, kKeepNRowsKeepRows);
     records.push_back(record_int);
     record_int = new OptionRecordInt(
         "allowed_simplex_matrix_scale_factor",
@@ -759,8 +765,8 @@ class HighsOptions : public HighsOptionsStruct {
     record_double = new OptionRecordDouble(
         "presolve_pivot_threshold",
         "Matrix factorization pivot threshold for substitutions in presolve",
-        advanced, &presolve_pivot_threshold, min_pivot_threshold, 0.01,
-        max_pivot_threshold);
+        advanced, &presolve_pivot_threshold, kMinPivotThreshold, 0.01,
+        kMaxPivotThreshold);
     records.push_back(record_double);
 
     record_int = new OptionRecordInt("presolve_substitution_maxfillin",
@@ -771,14 +777,14 @@ class HighsOptions : public HighsOptionsStruct {
 
     record_double = new OptionRecordDouble(
         "factor_pivot_threshold", "Matrix factorization pivot threshold",
-        advanced, &factor_pivot_threshold, min_pivot_threshold,
-        default_pivot_threshold, max_pivot_threshold);
+        advanced, &factor_pivot_threshold, kMinPivotThreshold,
+        kDefaultPivotThreshold, kMaxPivotThreshold);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(
         "factor_pivot_tolerance", "Matrix factorization pivot tolerance",
-        advanced, &factor_pivot_tolerance, min_pivot_tolerance,
-        default_pivot_tolerance, max_pivot_tolerance);
+        advanced, &factor_pivot_tolerance, kMinPivotTolerance,
+        kDefaultPivotTolerance, kMaxPivotTolerance);
     records.push_back(record_double);
 
     record_double = new OptionRecordDouble(

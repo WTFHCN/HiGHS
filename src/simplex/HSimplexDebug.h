@@ -27,8 +27,8 @@
 HighsDebugStatus ekkDebugSimplexLp(const HighsModelObject& highs_model_object);
 
 HighsDebugStatus debugBasisConsistent(const HighsOptions& options,
-                                      const HighsLp& simplex_lp,
-                                      const SimplexBasis& simplex_basis);
+                                      const HighsLp& lp,
+                                      const SimplexBasis& basis);
 void debugDualChuzcFailNorms(
     const HighsInt workCount,
     const std::vector<std::pair<HighsInt, double>>& workData,
@@ -54,8 +54,8 @@ HighsDebugStatus debugDualChuzcFailHeap(
     const bool force = false);
 
 HighsDebugStatus debugNonbasicFlagConsistent(const HighsOptions& options,
-                                             const HighsLp& simplex_lp,
-                                             const SimplexBasis& simplex_basis);
+                                             const HighsLp& lp,
+                                             const SimplexBasis& basis);
 
 // Methods for HMO
 
@@ -66,12 +66,12 @@ HighsDebugStatus debugSimplexBasisCorrect(
     const HighsModelObject& highs_model_object);
 
 HighsDebugStatus debugBasisConsistent(const HighsOptions& options,
-                                      const HighsLp& simplex_lp,
-                                      const SimplexBasis& simplex_basis);
+                                      const HighsLp& lp,
+                                      const SimplexBasis& basis);
 
 HighsDebugStatus debugBasisRightSize(const HighsOptions& options,
-                                     const HighsLp& simplex_lp,
-                                     const SimplexBasis& simplex_basis);
+                                     const HighsLp& lp,
+                                     const SimplexBasis& basis);
 
 HighsDebugStatus debugSimplexInfoBasisRightSize(
     const HighsModelObject& highs_model_object);

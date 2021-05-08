@@ -10,23 +10,23 @@
 /*    and Michael Feldmeier                                              */
 /*                                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/**@file io/FilereaderMps.h
+/**@file lp_data/HighsInfoDebug.h
  * @brief
  */
-#ifndef IO_FILEREADER_MPS_H_
-#define IO_FILEREADER_MPS_H_
+#ifndef LP_DATA_HIGHS_INFO_DEBUG_H_
+#define LP_DATA_HIGHS_INFO_DEBUG_H_
 
-#include "io/Filereader.h"
-#include "lp_data/HighsStatus.h"
+#include "lp_data/HStruct.h"
+#include "lp_data/HighsInfo.h"
+#include "lp_data/HighsLp.h"
+#include "lp_data/HighsOptions.h"
+//#include "lp_data/HighsLp.h"
 
-class FilereaderMps : public Filereader {
- public:
-  FilereaderRetcode readModelFromFile(const HighsOptions& options,
-                                      const std::string filename,
-                                      HighsLp& model);
-  HighsStatus writeModelToFile(const HighsOptions& options,
-                               const std::string filename,
-                               const HighsLp& model);
-};
+HighsDebugStatus debugInfo(const HighsOptions& options, const HighsLp& lp,
+                           const HighsBasis& basis,
+                           const HighsSolution& solution, const HighsInfo& info,
+                           const HighsModelStatus model_status);
+
+HighsDebugStatus debugNoInfo(const HighsInfo& info);
 
 #endif

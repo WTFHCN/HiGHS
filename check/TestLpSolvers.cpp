@@ -89,7 +89,7 @@ void testSolver(Highs& highs, const std::string solver,
     for (num_solve = 0; num_solve < max_num_solve; num_solve++) {
       if (use_simplex) return_status = highs.setBasis();
       return_status = highs.run();
-      if (highs.getModelStatus() == HighsModelStatus::kReachedTimeLimit) break;
+      if (highs.getModelStatus() == HighsModelStatus::kTimeLimit) break;
     }
     REQUIRE(num_solve < max_num_solve);
     run_time = highs.getRunTime();
@@ -136,7 +136,7 @@ void testSolver(Highs& highs, const std::string solver,
            (HighsInt)return_status,
            highs.modelStatusToString(model_status).c_str());
   REQUIRE(return_status == HighsStatus::kWarning);
-  REQUIRE(model_status == HighsModelStatus::kReachedIterationLimit);
+  REQUIRE(model_status == HighsModelStatus::kIterationLimit);
 
   if (use_simplex) {
     REQUIRE(info.simplex_iteration_count == 0);
@@ -167,7 +167,7 @@ void testSolver(Highs& highs, const std::string solver,
 
   return_status = highs.run();
   REQUIRE(return_status == HighsStatus::kWarning);
-  REQUIRE(highs.getModelStatus() == HighsModelStatus::kReachedIterationLimit);
+  REQUIRE(highs.getModelStatus() == HighsModelStatus::kIterationLimit);
 
   if (use_simplex) {
     REQUIRE(info.simplex_iteration_count == further_simplex_iterations);
@@ -187,17 +187,17 @@ void testSolversSetup(const std::string model,
                       vector<HighsInt>& simplex_strategy_iteration_count) {
   if (model.compare("adlittle") == 0) {
     simplex_strategy_iteration_count[(
-        int)SimplexStrategy::kSimplexStrategyChoose] = 75;
+        int)SimplexStrategy::kSimplexStrategyChoose] = 86;  // 75;
     simplex_strategy_iteration_count[(
-        int)SimplexStrategy::kSimplexStrategyDualPlain] = 75;
+        int)SimplexStrategy::kSimplexStrategyDualPlain] = 86;  // 75;
     simplex_strategy_iteration_count[(
         int)SimplexStrategy::kSimplexStrategyDualTasks] = 72;
     simplex_strategy_iteration_count[(
         int)SimplexStrategy::kSimplexStrategyDualMulti] = 73;
     simplex_strategy_iteration_count[(
         int)SimplexStrategy::kSimplexStrategyPrimal] = 94;
-    model_iteration_count.ipm = 19;
-    model_iteration_count.crossover = 3;
+    model_iteration_count.ipm = 13;       // 19;
+    model_iteration_count.crossover = 2;  // 3;
   }
 }
 
@@ -281,7 +281,7 @@ TEST_CASE("LP-solver", "[highs_lp_solver]") {
   const HighsInfo& info = highs.getInfo();
   REQUIRE(info.num_dual_infeasibilities == 1);
 
-  REQUIRE(info.simplex_iteration_count == 403);
+  REQUIRE(info.simplex_iteration_count == 529);  // 403);
 
   HighsModelStatus model_status = highs.getModelStatus();
   REQUIRE(model_status == HighsModelStatus::kNotset);
@@ -297,7 +297,7 @@ TEST_CASE("LP-solver", "[highs_lp_solver]") {
   return_status = highs.run();
   REQUIRE(return_status == HighsStatus::kOk);
 
-  REQUIRE(info.simplex_iteration_count == 598);
+  REQUIRE(info.simplex_iteration_count == 605);  // 598);
 }
 
 TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
@@ -307,10 +307,10 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
   bool bool_status;
   const double min_objective_function_value = -11.6389290663705;
   const double max_objective_function_value = 111.650960689315;
-  const double smaller_min_dual_objective_value_upper_bound = -110.0;
-  const double larger_min_dual_objective_value_upper_bound = -45.876;
-  const double use_max_dual_objective_value_upper_bound = 150.0;
-  double save_dual_objective_value_upper_bound;
+  const double smaller_min_objective_bound = -110.0;
+  const double larger_min_objective_bound = -45.876;
+  const double use_max_objective_bound = 150.0;
+  double save_objective_bound;
   Highs highs;
   if (!dev_run) {
     highs.setOptionValue("output_flag", false);
@@ -339,12 +339,10 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
   REQUIRE(error < 1e-14);
 
   // Set dual objective value upper bound after saving the default value
-  status = highs.getOptionValue("dual_objective_value_upper_bound",
-                                save_dual_objective_value_upper_bound);
+  status = highs.getOptionValue("objective_bound", save_objective_bound);
   REQUIRE(status == HighsStatus::kOk);
 
-  status = highs.setOptionValue("dual_objective_value_upper_bound",
-                                larger_min_dual_objective_value_upper_bound);
+  status = highs.setOptionValue("objective_bound", larger_min_objective_bound);
   REQUIRE(status == HighsStatus::kOk);
 
   // Solve again
@@ -352,7 +350,7 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
     printf(
         "\nSolving LP with presolve and dual objective value upper bound of "
         "%g\n",
-        larger_min_dual_objective_value_upper_bound);
+        larger_min_objective_bound);
   status = highs.setBasis();
   REQUIRE(status == HighsStatus::kOk);
 
@@ -369,7 +367,7 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
     printf(
         "\nSolving LP without presolve and larger dual objective value upper "
         "bound of %g\n",
-        larger_min_dual_objective_value_upper_bound);
+        larger_min_objective_bound);
   status = highs.setBasis();
   REQUIRE(status == HighsStatus::kOk);
 
@@ -377,8 +375,7 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
   REQUIRE(status == HighsStatus::kOk);
 
   model_status = highs.getModelStatus();
-  REQUIRE(model_status ==
-          HighsModelStatus::kReachedDualObjectiveValueUpperBound);
+  REQUIRE(model_status == HighsModelStatus::kObjectiveBound);
 
   // Solve again
   // This smaller dual objective value upper bound is satisfied at the start of
@@ -387,9 +384,8 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
     printf(
         "\nSolving LP without presolve and smaller dual objective value upper "
         "bound of %g\n",
-        smaller_min_dual_objective_value_upper_bound);
-  status = highs.setOptionValue("dual_objective_value_upper_bound",
-                                smaller_min_dual_objective_value_upper_bound);
+        smaller_min_objective_bound);
+  status = highs.setOptionValue("objective_bound", smaller_min_objective_bound);
   REQUIRE(status == HighsStatus::kOk);
 
   status = highs.setBasis();
@@ -399,16 +395,14 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
   REQUIRE(status == HighsStatus::kOk);
 
   model_status = highs.getModelStatus();
-  REQUIRE(model_status ==
-          HighsModelStatus::kReachedDualObjectiveValueUpperBound);
+  REQUIRE(model_status == HighsModelStatus::kObjectiveBound);
 
   // Solve as maximization and ensure that the dual objective value upper bound
   // isn't used
   bool_status = highs.changeObjectiveSense(ObjSense::kMaximize);
   REQUIRE(bool_status);
 
-  status = highs.setOptionValue("dual_objective_value_upper_bound",
-                                use_max_dual_objective_value_upper_bound);
+  status = highs.setOptionValue("objective_bound", use_max_objective_bound);
   REQUIRE(status == HighsStatus::kOk);
 
   // Solve again
@@ -417,7 +411,7 @@ TEST_CASE("dual-objective-upper-bound", "[highs_lp_solver]") {
         "\nSolving LP as maximization without presolve and dual objective "
         "value "
         "upper bound of %g\n",
-        use_max_dual_objective_value_upper_bound);
+        use_max_objective_bound);
   status = highs.setBasis();
   REQUIRE(status == HighsStatus::kOk);
 

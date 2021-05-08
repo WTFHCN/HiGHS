@@ -53,28 +53,71 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
     if (return_status == HighsStatus::kError) return return_status;
     // Set the scaled model status for completeness
     model.scaled_model_status_ = model.unscaled_model_status_;
-  } else if (options.solver == ipm_string) {
+  } else if (options.solver == kIpmString) {
     // Use IPM
 #ifdef IPX_ON
     bool imprecise_solution;
-    call_status =
-        solveLpIpx(options, model.timer_, model.lp_, imprecise_solution,
-                   model.basis_, model.solution_, model.iteration_counts_,
-                   model.unscaled_model_status_, model.solution_params_);
+    // Use IPX to solve the LP
+    try {
+      call_status =
+          solveLpIpx(options, model.timer_, model.lp_, imprecise_solution,
+                     model.basis_, model.solution_, model.iteration_counts_,
+                     model.unscaled_model_status_, model.solution_params_);
+    } catch (const std::exception& exception) {
+      highsLogDev(options.log_options, HighsLogType::kError,
+                  "Exception %s in solveLpIpx\n", exception.what());
+      call_status = HighsStatus::kError;
+    }
     return_status =
         interpretCallStatus(call_status, return_status, "solveLpIpx");
     if (return_status == HighsStatus::kError) return return_status;
-    if (imprecise_solution) {
-      // IPX+crossover has not obtained a solution satisfying the tolerances.
-      highsLogUser(
-          options.log_options, HighsLogType::kWarning,
-          "Imprecise solution returned from IPX so use simplex to clean up\n");
-      // Reset the return status (that should be HighsStatus::kWarning)
-      // since it will now be determined by the outcome of the simplex
-      // solve
-      assert(return_status == HighsStatus::kWarning);
+    // Non-error return requires a primal solution
+    assert(model.solution_.value_valid);
+    // Set the scaled model status for completeness
+    model.scaled_model_status_ = model.unscaled_model_status_;
+    // Get the infeasibilities and objective value
+    // ToDo: This should take model.basis_ and use it if it's valid
+    getPrimalDualInfeasibilities(model.lp_, model.solution_,
+                                 model.solution_params_);
+    const double objective_function_value =
+        computeObjectiveValue(model.lp_, model.solution_);
+    model.solution_params_.objective_function_value = objective_function_value;
+
+    HighsSolutionParams check_solution_params;
+    check_solution_params.objective_function_value = objective_function_value;
+    check_solution_params.primal_feasibility_tolerance =
+        options.primal_feasibility_tolerance;
+    check_solution_params.dual_feasibility_tolerance =
+        options.dual_feasibility_tolerance;
+    getKktFailures(model.lp_, model.solution_, model.basis_,
+                   check_solution_params);
+
+    if (debugCompareSolutionParams(options, model.solution_params_,
+                                   check_solution_params) !=
+        HighsDebugStatus::kOk) {
+      return HighsStatus::kError;
+    }
+
+    if ((model.unscaled_model_status_ == HighsModelStatus::kUnknown ||
+         (model.unscaled_model_status_ ==
+              HighsModelStatus::kUnboundedOrInfeasible &&
+          !options.allow_unbounded_or_infeasible)) &&
+        options.run_crossover) {
+      // IPX has returned a model status that HiGHS would rather
+      // avoid, so perform simplex clean-up if crossover was allowed.
+      //
+      // This is an unusual situation, and the cost will usually be
+      // acceptable. Worst case is if crossover wasn't run, in which
+      // case there's no basis to start simplex
+      //
+      // ToDo: Check whether simplex can exploit the primal solution returned by
+      // IPX
+      highsLogUser(options.log_options, HighsLogType::kWarning,
+                   "Imprecise solution returned from IPX, so use simplex to "
+                   "clean up\n");
+      // Reset the return status since it will now be determined by
+      // the outcome of the simplex solve
       return_status = HighsStatus::kOk;
-      // Use the simplex method to clean up
       call_status = solveLpSimplex(model);
       return_status =
           interpretCallStatus(call_status, return_status, "solveLpSimplex");
@@ -84,9 +127,6 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
                      "Inconsistent solution returned from solver\n");
         return HighsStatus::kError;
       }
-    } else {
-      // Set the scaled model status and solution params for completeness
-      model.scaled_model_status_ = model.unscaled_model_status_;
     }
 #else
     highsLogUser(options.log_options, HighsLogType::kError,
@@ -105,10 +145,11 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
       return HighsStatus::kError;
     }
   }
-  // Possibly analyse the HiGHS basic solution
+  // ToDo: Possibly analyse the HiGHS (basic) solution - generalise to
+  // handle solution without basis? But doesn't returnFromRun do this?
   //
   // NB IPX may not yield a basic solution
-  if (model.basis_.valid_) debugHighsBasicSolution(message, model);
+  if (model.basis_.valid) debugHighsBasicSolution(message, model);
 
   return return_status;
 }
@@ -170,6 +211,7 @@ HighsStatus solveUnconstrainedLp(const HighsOptions& options, const HighsLp& lp,
     double upper = lp.colUpper_[iCol];
     double value;
     double primal_infeasibility = 0;
+    double dual_infeasibility = -1;
     HighsBasisStatus status = HighsBasisStatus::kNonbasic;
     if (lower > upper) {
       // Inconsistent bounds, so set the variable to lower bound,
@@ -179,37 +221,58 @@ HighsStatus solveUnconstrainedLp(const HighsOptions& options, const HighsLp& lp,
       if (highs_isInfinity(lower)) {
         // Lower bound of +inf
         if (highs_isInfinity(-upper)) {
-          // Unite upper bound of -inf
+          // Upper bound of -inf
           value = 0;
           status = HighsBasisStatus::kZero;
           primal_infeasibility = kHighsInf;
+          dual_infeasibility = std::fabs(dual);
         } else {
+          // Finite upper bound - since lower exceeds it
           value = upper;
           status = HighsBasisStatus::kUpper;
           primal_infeasibility = lower - value;
+          dual_infeasibility = std::max(dual, 0.);
         }
       } else {
+        // Finite lower bound
         value = lower;
         status = HighsBasisStatus::kLower;
         primal_infeasibility = value - upper;
+        dual_infeasibility = std::max(-dual, 0.);
       }
     } else if (highs_isInfinity(-lower) && highs_isInfinity(upper)) {
-      // Free column: must have zero cost
+      // Free column: set to zero and record dual infeasiblility
       value = 0;
       status = HighsBasisStatus::kZero;
-      if (fabs(dual) > dual_feasibility_tolerance) unbounded = true;
+      dual_infeasibility = std::fabs(dual);
     } else if (dual >= dual_feasibility_tolerance) {
-      // Column with sufficiently positive dual: set to lower bound
-      // and check for unboundedness
-      if (highs_isInfinity(-lower)) unbounded = true;
-      value = lower;
-      status = HighsBasisStatus::kLower;
+      // Column with sufficiently positive dual
+      if (!highs_isInfinity(-lower)) {
+        // Set to this finite lower bound
+        value = lower;
+        status = HighsBasisStatus::kLower;
+        dual_infeasibility = 0;
+      } else {
+        // Infinite lower bound so set to upper bound and record dual
+        // infeasiblility
+        value = upper;
+        status = HighsBasisStatus::kUpper;
+        dual_infeasibility = dual;
+      }
     } else if (dual <= -dual_feasibility_tolerance) {
-      // Column with sufficiently negative dual: set to upper bound
-      // and check for unboundedness
-      if (highs_isInfinity(upper)) unbounded = true;
-      value = upper;
-      status = HighsBasisStatus::kUpper;
+      // Column with sufficiently negative dual
+      if (!highs_isInfinity(upper)) {
+        // Set to this finite upper bound
+        value = upper;
+        status = HighsBasisStatus::kUpper;
+        dual_infeasibility = 0;
+      } else {
+        // Infinite upper bound so set to lower bound and record dual
+        // infeasiblility
+        value = lower;
+        status = HighsBasisStatus::kLower;
+        dual_infeasibility = -dual;
+      }
     } else {
       // Column with sufficiently small dual: set to lower bound (if
       // finite) otherwise upper bound
@@ -220,36 +283,47 @@ HighsStatus solveUnconstrainedLp(const HighsOptions& options, const HighsLp& lp,
         value = lower;
         status = HighsBasisStatus::kLower;
       }
+      dual_infeasibility = std::fabs(dual);
     }
     assert(status != HighsBasisStatus::kNonbasic);
+    assert(dual_infeasibility >= 0);
     solution.col_value[iCol] = value;
     solution.col_dual[iCol] = (HighsInt)lp.sense_ * dual;
     basis.col_status[iCol] = status;
     objective += value * cost;
-    solution_params.sum_primal_infeasibility += primal_infeasibility;
-    if (primal_infeasibility > primal_feasibility_tolerance) {
-      infeasible = true;
+    if (primal_infeasibility > primal_feasibility_tolerance)
       solution_params.num_primal_infeasibility++;
-      solution_params.max_primal_infeasibility =
-          max(primal_infeasibility, solution_params.max_primal_infeasibility);
-    }
+    solution_params.sum_primal_infeasibility += primal_infeasibility;
+    solution_params.max_primal_infeasibility = std::max(
+        primal_infeasibility, solution_params.max_primal_infeasibility);
+    if (dual_infeasibility > dual_feasibility_tolerance)
+      solution_params.num_dual_infeasibility++;
+    solution_params.sum_dual_infeasibility += dual_infeasibility;
+    solution_params.max_dual_infeasibility =
+        std::max(dual_infeasibility, solution_params.max_dual_infeasibility);
   }
   solution_params.objective_function_value = objective;
-  basis.valid_ = true;
-
-  if (infeasible) {
-    model_status = HighsModelStatus::kInfeasible;
+  solution.value_valid = true;
+  solution.dual_valid = true;
+  basis.valid = true;
+  if (solution_params.num_primal_infeasibility > 0) {
     solution_params.primal_status = kHighsPrimalDualStatusInfeasiblePoint;
-    solution_params.dual_status = kHighsPrimalDualStatusUnknown;
   } else {
     solution_params.primal_status = kHighsPrimalDualStatusFeasiblePoint;
-    if (unbounded) {
-      model_status = HighsModelStatus::kUnbounded;
-      solution_params.dual_status = kHighsPrimalDualStatusInfeasiblePoint;
-    } else {
-      model_status = HighsModelStatus::kOptimal;
-      solution_params.dual_status = kHighsPrimalDualStatusFeasiblePoint;
-    }
+  }
+  if (solution_params.num_dual_infeasibility > 0) {
+    solution_params.dual_status = kHighsPrimalDualStatusInfeasiblePoint;
+  } else {
+    solution_params.dual_status = kHighsPrimalDualStatusFeasiblePoint;
+  }
+  if (solution_params.num_primal_infeasibility > 0) {
+    // Primal infeasible
+    model_status = HighsModelStatus::kInfeasible;
+  } else if (solution_params.num_dual_infeasibility > 0) {
+    // Dual infeasible => primal unbounded for unconstrained LP
+    model_status = HighsModelStatus::kUnbounded;
+  } else {
+    model_status = HighsModelStatus::kOptimal;
   }
   return HighsStatus::kOk;
 }

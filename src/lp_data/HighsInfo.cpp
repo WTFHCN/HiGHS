@@ -18,9 +18,16 @@
 #include "lp_data/HighsOptions.h"
 
 void HighsInfo::clear() {
+  valid = false;
+  mip_node_count = -1;
+  simplex_iteration_count = -1;
+  ipm_iteration_count = -1;
+  crossover_iteration_count = -1;
   primal_status = (HighsInt)kHighsPrimalDualStatusNotset;
   dual_status = (HighsInt)kHighsPrimalDualStatusNotset;
   objective_function_value = 0;
+  mip_dual_bound = 0;
+  mip_gap = kHighsInf;
   num_primal_infeasibilities = kHighsIllegalInfeasibilityCount;
   max_primal_infeasibility = kHighsIllegalInfeasibilityMeasure;
   sum_primal_infeasibilities = kHighsIllegalInfeasibilityMeasure;
@@ -29,9 +36,11 @@ void HighsInfo::clear() {
   sum_dual_infeasibilities = kHighsIllegalInfeasibilityMeasure;
 }
 
-std::string infoEntryType2string(const HighsInfoType type) {
-  if (type == HighsInfoType::kInt) {
-    return "int";
+std::string infoEntryTypeToString(const HighsInfoType type) {
+  if (type == HighsInfoType::kInt64) {
+    return "int64_t";
+  } else if (type == HighsInfoType::kInt) {
+    return "HighsInt";
   } else {
     return "double";
   }
@@ -68,7 +77,28 @@ InfoStatus checkInfo(const HighsOptions& options,
         error_found = true;
       }
     }
-    if (type == HighsInfoType::kInt) {
+    if (type == HighsInfoType::kInt64) {
+      // Check int64_t info
+      InfoRecordInt64& info = ((InfoRecordInt64*)info_records[index])[0];
+      // Check that there are no other info with the same value pointers
+      int64_t* value_pointer = info.value;
+      for (HighsInt check_index = 0; check_index < num_info; check_index++) {
+        if (check_index == index) continue;
+        InfoRecordInt64& check_info =
+            ((InfoRecordInt64*)info_records[check_index])[0];
+        if (check_info.type == HighsInfoType::kInt64) {
+          if (check_info.value == value_pointer) {
+            highsLogUser(options.log_options, HighsLogType::kError,
+                         "checkInfo: Info %" HIGHSINT_FORMAT
+                         " (\"%s\") has the same value "
+                         "pointer as info %" HIGHSINT_FORMAT " (\"%s\")\n",
+                         index, info.name.c_str(), check_index,
+                         check_info.name.c_str());
+            error_found = true;
+          }
+        }
+      }
+    } else if (type == HighsInfoType::kInt) {
       // Check HighsInt info
       InfoRecordInt& info = ((InfoRecordInt*)info_records[index])[0];
       // Check that there are no other info with the same value pointers
@@ -119,18 +149,19 @@ InfoStatus checkInfo(const HighsOptions& options,
 }
 
 InfoStatus getLocalInfoValue(const HighsOptions& options,
-                             const std::string& name,
+                             const std::string& name, const bool valid,
                              const std::vector<InfoRecord*>& info_records,
                              HighsInt& value) {
   HighsInt index;
   InfoStatus status = getInfoIndex(options, name, info_records, index);
   if (status != InfoStatus::kOk) return status;
+  if (!valid) return InfoStatus::kUnavailable;
   HighsInfoType type = info_records[index]->type;
   if (type != HighsInfoType::kInt) {
     highsLogUser(
         options.log_options, HighsLogType::kError,
         "getInfoValue: Info \"%s\" requires value of type %s, not int\n",
-        name.c_str(), infoEntryType2string(type).c_str());
+        name.c_str(), infoEntryTypeToString(type).c_str());
     return InfoStatus::kIllegalValue;
   }
   InfoRecordInt info = ((InfoRecordInt*)info_records[index])[0];
@@ -139,18 +170,19 @@ InfoStatus getLocalInfoValue(const HighsOptions& options,
 }
 
 InfoStatus getLocalInfoValue(const HighsOptions& options,
-                             const std::string& name,
+                             const std::string& name, const bool valid,
                              const std::vector<InfoRecord*>& info_records,
                              double& value) {
   HighsInt index;
   InfoStatus status = getInfoIndex(options, name, info_records, index);
   if (status != InfoStatus::kOk) return status;
+  if (!valid) return InfoStatus::kUnavailable;
   HighsInfoType type = info_records[index]->type;
   if (type != HighsInfoType::kDouble) {
     highsLogUser(
         options.log_options, HighsLogType::kError,
         "getInfoValue: Info \"%s\" requires value of type %s, not double\n",
-        name.c_str(), infoEntryType2string(type).c_str());
+        name.c_str(), infoEntryTypeToString(type).c_str());
     return InfoStatus::kIllegalValue;
   }
   InfoRecordDouble info = ((InfoRecordDouble*)info_records[index])[0];
@@ -158,9 +190,10 @@ InfoStatus getLocalInfoValue(const HighsOptions& options,
   return InfoStatus::kOk;
 }
 
-HighsStatus writeInfoToFile(FILE* file,
+HighsStatus writeInfoToFile(FILE* file, const bool valid,
                             const std::vector<InfoRecord*>& info_records,
                             const bool html) {
+  if (!html && !valid) return HighsStatus::kWarning;
   if (html) {
     fprintf(file, "<!DOCTYPE HTML>\n<html>\n\n<head>\n");
     fprintf(file, "  <title>HiGHS Info</title>\n");
@@ -175,7 +208,7 @@ HighsStatus writeInfoToFile(FILE* file,
     fprintf(file, "<h3>HiGHS Info</h3>\n\n");
     fprintf(file, "<ul>\n");
   }
-  reportInfo(file, info_records, html);
+  if (html || valid) reportInfo(file, info_records, html);
   if (html) {
     fprintf(file, "</ul>\n");
     fprintf(file, "</body>\n\n</html>\n");
@@ -190,11 +223,30 @@ void reportInfo(FILE* file, const std::vector<InfoRecord*>& info_records,
     HighsInfoType type = info_records[index]->type;
     // Skip the advanced info when creating HTML
     if (html && info_records[index]->advanced) continue;
-    if (type == HighsInfoType::kInt) {
+    if (type == HighsInfoType::kInt64) {
+      reportInfo(file, ((InfoRecordInt64*)info_records[index])[0], html);
+    } else if (type == HighsInfoType::kInt) {
       reportInfo(file, ((InfoRecordInt*)info_records[index])[0], html);
     } else {
       reportInfo(file, ((InfoRecordDouble*)info_records[index])[0], html);
     }
+  }
+}
+
+void reportInfo(FILE* file, const InfoRecordInt64& info, const bool html) {
+  if (html) {
+    fprintf(file,
+            "<li><tt><font size=\"+2\"><strong>%s</strong></font></tt><br>\n",
+            info.name.c_str());
+    fprintf(file, "%s<br>\n", info.description.c_str());
+    fprintf(file, "type: HighsInt, advanced: %s\n",
+            highsBoolToString(info.advanced).c_str());
+    fprintf(file, "</li>\n");
+  } else {
+    fprintf(file, "\n# %s\n", info.description.c_str());
+    fprintf(file, "# [type: HighsInt, advanced: %s]\n",
+            highsBoolToString(info.advanced).c_str());
+    fprintf(file, "%s = %" PRId64 "\n", info.name.c_str(), *info.value);
   }
 }
 

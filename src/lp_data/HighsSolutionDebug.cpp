@@ -38,7 +38,7 @@ HighsDebugStatus debugBasisConsistent(const HighsOptions& options,
   if (options.highs_debug_level < kHighsDebugLevelCheap)
     return HighsDebugStatus::kNotChecked;
   HighsDebugStatus return_status = HighsDebugStatus::kOk;
-  if (!basis.valid_) return return_status;
+  if (!basis.valid) return return_status;
   bool consistent = isBasisConsistent(lp, basis);
   if (!consistent) {
     highsLogUser(options.log_options, HighsLogType::kError,
@@ -65,20 +65,45 @@ HighsDebugStatus debugBasisRightSize(const HighsOptions& options,
   return return_status;
 }
 
-HighsDebugStatus debugSolutionRightSize(const HighsOptions& options,
-                                        const HighsLp lp,
-                                        const HighsSolution& solution) {
+HighsDebugStatus debugPrimalSolutionRightSize(const HighsOptions& options,
+                                              const HighsLp lp,
+                                              const HighsSolution& solution) {
   if (options.highs_debug_level < kHighsDebugLevelCheap)
     return HighsDebugStatus::kNotChecked;
   HighsDebugStatus return_status = HighsDebugStatus::kOk;
-  bool right_size = isSolutionRightSize(lp, solution);
+  bool right_size = isPrimalSolutionRightSize(lp, solution);
   if (!right_size) {
     highsLogUser(options.log_options, HighsLogType::kError,
-                 "HiGHS solution size error\n");
+                 "HiGHS primal solution size error\n");
     assert(right_size);
     return_status = HighsDebugStatus::kLogicalError;
   }
   return return_status;
+}
+
+HighsDebugStatus debugDualSolutionRightSize(const HighsOptions& options,
+                                            const HighsLp lp,
+                                            const HighsSolution& solution) {
+  if (options.highs_debug_level < kHighsDebugLevelCheap)
+    return HighsDebugStatus::kNotChecked;
+  HighsDebugStatus return_status = HighsDebugStatus::kOk;
+  bool right_size = isDualSolutionRightSize(lp, solution);
+  if (!right_size) {
+    highsLogUser(options.log_options, HighsLogType::kError,
+                 "HiGHS dual solution size error\n");
+    assert(right_size);
+    return_status = HighsDebugStatus::kLogicalError;
+  }
+  return return_status;
+}
+
+HighsDebugStatus debugSolutionRightSize(const HighsOptions& options,
+                                        const HighsLp lp,
+                                        const HighsSolution& solution) {
+  HighsDebugStatus return_status;
+  return_status = debugPrimalSolutionRightSize(options, lp, solution);
+  if (return_status != HighsDebugStatus::kOk) return return_status;
+  return debugDualSolutionRightSize(options, lp, solution);
 }
 
 HighsDebugStatus debugHighsBasicSolution(
@@ -99,6 +124,7 @@ HighsDebugStatus debugHighsBasicSolution(
   // Non-trivially expensive analysis of a HiGHS basic solution, starting from
   // options and info
   //
+
   // Extract the solution_params from info and options
   HighsSolutionParams solution_params;
   solution_params.primal_feasibility_tolerance =
@@ -183,6 +209,20 @@ HighsDebugStatus debugHighsBasicSolution(
       HighsDebugStatus::kOk)
     return HighsDebugStatus::kLogicalError;
 
+  HighsSolutionParams check_solution_params0;
+  HighsPrimalDualErrors primal_dual_errors0;
+  check_solution_params0.primal_feasibility_tolerance =
+      solution_params.primal_feasibility_tolerance;
+  check_solution_params0.dual_feasibility_tolerance =
+      solution_params.dual_feasibility_tolerance;
+  check_solution_params0.objective_function_value =
+      solution_params.objective_function_value;
+  getKktFailures(lp, solution, basis, check_solution_params0,
+                 primal_dual_errors0);
+  HighsDebugStatus return_status0 = debugCompareSolutionParams(
+      options, solution_params, check_solution_params0);
+  debugAnalysePrimalDualErrors(options, primal_dual_errors0);
+
   HighsSolutionParams check_solution_params;
   double check_primal_objective_value;
   double check_dual_objective_value;
@@ -218,7 +258,7 @@ HighsDebugStatus debugHaveBasisAndSolutionData(const HighsLp& lp,
                                                const HighsSolution& solution) {
   if (!isSolutionRightSize(lp, solution))
     return HighsDebugStatus::kLogicalError;
-  if (!isBasisRightSize(lp, basis) && basis.valid_)
+  if (!isBasisRightSize(lp, basis) && basis.valid)
     return HighsDebugStatus::kLogicalError;
   return HighsDebugStatus::kOk;
 }
@@ -344,20 +384,23 @@ void debugHighsBasicSolutionPrimalDualInfeasibilitiesAndErrors(
              (options.highs_debug_level == kHighsDebugLevelExpensive && query);
     if (report) {
       if (!header_written) {
-        printf(
+        highsLogDev(
+            options.log_options, HighsLogType::kError,
             "\nColumns\nIndex NonBs Mv [          LB,           UB]       "
             "Primal         Dual    PrimalIfs      DualIfs\n");
         header_written = true;
       }
-      printf("%5" HIGHSINT_FORMAT " %5" HIGHSINT_FORMAT
-             " [%12g, %12g] %12g %12g",
-             iCol, (HighsInt)status, lower, upper, value, dual);
-      printf(" %12g %12g", primal_infeasibility, dual_infeasibility);
+      highsLogDev(options.log_options, HighsLogType::kError,
+                  "%5" HIGHSINT_FORMAT " %5" HIGHSINT_FORMAT
+                  " [%12g, %12g] %12g %12g",
+                  iCol, (HighsInt)status, lower, upper, value, dual);
+      highsLogDev(options.log_options, HighsLogType::kError, " %12g %12g",
+                  primal_infeasibility, dual_infeasibility);
       debugBasicSolutionVariable(
           report, primal_feasibility_tolerance, dual_feasibility_tolerance,
           status, lower, upper, value, dual, num_non_basic_var, num_basic_var,
           off_bound_nonbasic, primal_infeasibility, dual_infeasibility);
-      printf("\n");
+      highsLogDev(options.log_options, HighsLogType::kError, "\n");
     }
     dual_activities[iCol] = lp.colCost_[iCol];
     for (HighsInt el = lp.Astart_[iCol]; el < lp.Astart_[iCol + 1]; el++) {
@@ -375,14 +418,16 @@ void debugHighsBasicSolutionPrimalDualInfeasibilitiesAndErrors(
     if (primal_residual_error > large_residual_error) {
       if (report) {
         if (!header_written) {
-          printf(
+          highsLogDev(
+              options.log_options, HighsLogType::kError,
               "\nRow primal residuals\nIndex     Activity     Solution     "
               "Residual\n");
           header_written = true;
         }
-        printf("%5" HIGHSINT_FORMAT " %12g %12g %12g\n", iRow,
-               primal_activities[iRow], solution.row_value[iRow],
-               primal_residual_error);
+        highsLogDev(options.log_options, HighsLogType::kError,
+                    "%5" HIGHSINT_FORMAT " %12g %12g %12g\n", iRow,
+                    primal_activities[iRow], solution.row_value[iRow],
+                    primal_residual_error);
       }
       num_primal_residual++;
     }
@@ -396,14 +441,16 @@ void debugHighsBasicSolutionPrimalDualInfeasibilitiesAndErrors(
     if (dual_residual_error > large_residual_error) {
       if (report) {
         if (!header_written) {
-          printf(
+          highsLogDev(
+              options.log_options, HighsLogType::kError,
               "\nRow dual residuals\nIndex     Activity     Solution     "
               "Residual\n");
           header_written = true;
         }
-        printf("%5" HIGHSINT_FORMAT " %12g %12g %12g\n", iCol,
-               dual_activities[iCol], solution.col_dual[iCol],
-               dual_residual_error);
+        highsLogDev(options.log_options, HighsLogType::kError,
+                    "%5" HIGHSINT_FORMAT " %12g %12g %12g\n", iCol,
+                    dual_activities[iCol], solution.col_dual[iCol],
+                    dual_residual_error);
       }
       num_dual_residual++;
     }
@@ -456,20 +503,23 @@ void debugHighsBasicSolutionPrimalDualInfeasibilitiesAndErrors(
              (options.highs_debug_level == kHighsDebugLevelExpensive && query);
     if (report) {
       if (!header_written) {
-        printf(
+        highsLogDev(
+            options.log_options, HighsLogType::kError,
             "Rows\nIndex NonBs Mv [          LB,           UB]       Primal    "
             "     Dual    PrimalIfs      DualIfs\n");
         header_written = true;
       }
-      printf("%5" HIGHSINT_FORMAT " %5" HIGHSINT_FORMAT
-             " [%12g, %12g] %12g %12g",
-             iRow, (HighsInt)status, lower, upper, value, dual);
-      printf(" %12g %12g", primal_infeasibility, dual_infeasibility);
+      highsLogDev(options.log_options, HighsLogType::kError,
+                  "%5" HIGHSINT_FORMAT " %5" HIGHSINT_FORMAT
+                  " [%12g, %12g] %12g %12g",
+                  iRow, (HighsInt)status, lower, upper, value, dual);
+      highsLogDev(options.log_options, HighsLogType::kError, " %12g %12g",
+                  primal_infeasibility, dual_infeasibility);
       debugBasicSolutionVariable(
           report, primal_feasibility_tolerance, dual_feasibility_tolerance,
           status, lower, upper, value, dual, num_non_basic_var, num_basic_var,
           off_bound_nonbasic, primal_infeasibility, dual_infeasibility);
-      printf("\n");
+      highsLogDev(options.log_options, HighsLogType::kError, "\n");
     }
   }
 }

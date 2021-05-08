@@ -18,10 +18,8 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
 
 #include "lp_data/HConst.h"
-//#include "io/HighsIO.h"
 #include "simplex/FactorTimer.h"
 #include "simplex/HFactorDebug.h"
 #include "simplex/HVector.h"
@@ -115,7 +113,7 @@ void solveHyper(const HighsInt Hsize, const HighsInt* Hlookup,
     }
   }
 
-  rhs->syntheticTick += countPivot * 20 + countEntry * 10;
+  rhs->synthetic_tick += countPivot * 20 + countEntry * 10;
 
   // Solve with list
   if (HpivotValue == 0) {
@@ -173,9 +171,9 @@ void HFactor::setup(HighsInt numCol_, HighsInt numRow_, const HighsInt* Astart_,
   Avalue = Avalue_;
   baseIndex = baseIndex_;
   pivot_threshold =
-      max(min_pivot_threshold, min(pivot_threshold_, max_pivot_threshold));
+      max(kMinPivotThreshold, min(pivot_threshold_, kMaxPivotThreshold));
   pivot_tolerance =
-      max(min_pivot_tolerance, min(pivot_tolerance_, max_pivot_tolerance));
+      max(kMinPivotTolerance, min(pivot_tolerance_, kMaxPivotTolerance));
   highs_debug_level = highs_debug_level_;
   log_options.log_file_stream = log_file_stream_;
   log_data = decltype(log_data)(new std::tuple<bool, bool, HighsInt>(
@@ -272,7 +270,7 @@ void HFactor::setup(HighsInt numCol_, HighsInt numRow_, const HighsInt* Astart_,
 HighsInt HFactor::build(HighsTimerClock* factor_timer_clock_pointer) {
   FactorTimer factor_timer;
   factor_timer.start(FactorInvert, factor_timer_clock_pointer);
-  build_syntheticTick = 0;
+  build_synthetic_tick = 0;
   factor_timer.start(FactorInvertSimple, factor_timer_clock_pointer);
   // Build the L, U factor
   buildSimple();
@@ -333,15 +331,15 @@ void HFactor::update(HVector* aq, HVector* ep, HighsInt* iRow, HighsInt* hint) {
     return;
   }
 
-  if (updateMethod == UPDATE_METHOD_FT) updateFT(aq, ep, *iRow);
-  if (updateMethod == UPDATE_METHOD_PF) updatePF(aq, *iRow, hint);
-  if (updateMethod == UPDATE_METHOD_MPF) updateMPF(aq, ep, *iRow, hint);
-  if (updateMethod == UPDATE_METHOD_APF) updateAPF(aq, ep, *iRow);
+  if (updateMethod == kUpdateMethodFt) updateFT(aq, ep, *iRow);
+  if (updateMethod == kUpdateMethodPf) updatePF(aq, *iRow, hint);
+  if (updateMethod == kUpdateMethodMpf) updateMPF(aq, ep, *iRow, hint);
+  if (updateMethod == kUpdateMethodApf) updateAPF(aq, ep, *iRow);
 }
 
 bool HFactor::setPivotThreshold(const double new_pivot_threshold) {
-  if (new_pivot_threshold < min_pivot_threshold) return false;
-  if (new_pivot_threshold > max_pivot_threshold) return false;
+  if (new_pivot_threshold < kMinPivotThreshold) return false;
+  if (new_pivot_threshold > kMaxPivotThreshold) return false;
   pivot_threshold = new_pivot_threshold;
   return true;
 }
@@ -435,7 +433,7 @@ void HFactor::buildSimple() {
   // Comments: for pds-20, dfl001: 60 / 80
   // Comments: when system is large: enlarge
   // Comments: when system is small: decrease
-  build_syntheticTick += BcountX * 60 + (numRow - nwork) * 80;
+  build_synthetic_tick += BcountX * 60 + (numRow - nwork) * 80;
 
   /**
    * 2. Search for and deal with singletons
@@ -527,7 +525,7 @@ void HFactor::buildSimple() {
   t2_storeU = Uindex.size() - t2_storeU;
   t2_storep = t2_storep - nwork;
 
-  build_syntheticTick +=
+  build_synthetic_tick +=
       t2_search * 20 + (t2_storep + t2_storeL + t2_storeU) * 80;
 
   /**
@@ -578,7 +576,7 @@ void HFactor::buildSimple() {
     colFixMax(iCol);
     clinkAdd(iCol, MCcountA[iCol]);
   }
-  build_syntheticTick += (numRow + nwork + MCcountX) * 40 + MRcountX * 20;
+  build_synthetic_tick += (numRow + nwork + MCcountX) * 40 + MRcountX * 20;
   // Record the kernel dimension
   kernel_dim = nwork;
 }
@@ -877,7 +875,7 @@ HighsInt HFactor::buildKernel() {
       }
     }
   }
-  build_syntheticTick +=
+  build_synthetic_tick +=
       fake_search * 20 + fake_fill * 160 + fake_eliminate * 80;
   rank_deficiency = 0;
   return rank_deficiency;
@@ -998,7 +996,7 @@ void HFactor::buildFinish() {
 
   // UR space
   HighsInt UcountX = Uindex.size();
-  HighsInt URstuffX = updateMethod == UPDATE_METHOD_FT ? 5 : 0;
+  HighsInt URstuffX = updateMethod == kUpdateMethodFt ? 5 : 0;
   HighsInt URcountX = UcountX + URstuffX * numRow;
   URindex.resize(URcountX);
   URvalue.resize(URcountX);
@@ -1027,8 +1025,8 @@ void HFactor::buildFinish() {
   // Re-factor merit
   UmeritX = numRow + (LcountX + UcountX) * 1.5;
   UtotalX = UcountX;
-  if (updateMethod == UPDATE_METHOD_PF) UmeritX = numRow + UcountX * 4;
-  if (updateMethod == UPDATE_METHOD_MPF) UmeritX = numRow + UcountX * 3;
+  if (updateMethod == kUpdateMethodPf) UmeritX = numRow + UcountX * 4;
+  if (updateMethod == kUpdateMethodMpf) UmeritX = numRow + UcountX * 3;
 
   // Clear update buffer
   PFpivotValue.clear();
@@ -1042,14 +1040,14 @@ void HFactor::buildFinish() {
   iwork.assign(baseIndex, baseIndex + numRow);
   for (HighsInt i = 0; i < numRow; i++) baseIndex[permute[i]] = iwork[i];
 
-  build_syntheticTick += numRow * 80 + (LcountX + UcountX) * 60;
+  build_synthetic_tick += numRow * 80 + (LcountX + UcountX) * 60;
 }
 
 void HFactor::ftranL(HVector& rhs, double historical_density,
                      HighsTimerClock* factor_timer_clock_pointer) const {
   FactorTimer factor_timer;
   factor_timer.start(FactorFtranLower, factor_timer_clock_pointer);
-  if (updateMethod == UPDATE_METHOD_APF) {
+  if (updateMethod == kUpdateMethodApf) {
     factor_timer.start(FactorFtranLowerAPF, factor_timer_clock_pointer);
     rhs.tight();
     rhs.pack();
@@ -1059,7 +1057,7 @@ void HFactor::ftranL(HVector& rhs, double historical_density,
   }
 
   double current_density = 1.0 * rhs.count / numRow;
-  if (current_density > hyperCANCEL || historical_density > hyperFTRANL) {
+  if (current_density > kHyperCancel || historical_density > kHyperFtranL) {
     factor_timer.start(FactorFtranLowerSps, factor_timer_clock_pointer);
     // Alias to RHS
     HighsInt RHScount = 0;
@@ -1104,7 +1102,7 @@ void HFactor::btranL(HVector& rhs, double historical_density,
   FactorTimer factor_timer;
   factor_timer.start(FactorBtranLower, factor_timer_clock_pointer);
   double current_density = 1.0 * rhs.count / numRow;
-  if (current_density > hyperCANCEL || historical_density > hyperBTRANL) {
+  if (current_density > kHyperCancel || historical_density > kHyperBtranL) {
     // Alias to RHS
     factor_timer.start(FactorBtranLowerSps, factor_timer_clock_pointer);
     HighsInt RHScount = 0;
@@ -1145,7 +1143,7 @@ void HFactor::btranL(HVector& rhs, double historical_density,
     factor_timer.stop(FactorBtranLowerHyper, factor_timer_clock_pointer);
   }
 
-  if (updateMethod == UPDATE_METHOD_APF) {
+  if (updateMethod == kUpdateMethodApf) {
     factor_timer.start(FactorBtranLowerAPF, factor_timer_clock_pointer);
     btranAPF(rhs);
     rhs.tight();
@@ -1160,7 +1158,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
   FactorTimer factor_timer;
   factor_timer.start(FactorFtranUpper, factor_timer_clock_pointer);
   // The update part
-  if (updateMethod == UPDATE_METHOD_FT) {
+  if (updateMethod == kUpdateMethodFt) {
     factor_timer.start(FactorFtranUpperFT, factor_timer_clock_pointer);
     //    const double current_density = 1.0 * rhs.count / numRow;
     ftranFT(rhs);
@@ -1168,7 +1166,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
     rhs.pack();
     factor_timer.stop(FactorFtranUpperFT, factor_timer_clock_pointer);
   }
-  if (updateMethod == UPDATE_METHOD_MPF) {
+  if (updateMethod == kUpdateMethodMpf) {
     factor_timer.start(FactorFtranUpperMPF, factor_timer_clock_pointer);
     ftranMPF(rhs);
     rhs.tight();
@@ -1178,9 +1176,9 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
 
   // The regular part
   const double current_density = 1.0 * rhs.count / numRow;
-  if (current_density > hyperCANCEL || historical_density > hyperFTRANU) {
+  if (current_density > kHyperCancel || historical_density > kHyperFtranU) {
     const bool report_ftran_upper_sparse =
-        false;  // current_density < hyperCANCEL;
+        false;  // current_density < kHyperCancel;
     HighsInt use_clock;
     if (current_density < 0.1)
       use_clock = FactorFtranUpperSps2;
@@ -1190,7 +1188,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
       use_clock = FactorFtranUpperSps0;
     factor_timer.start(use_clock, factor_timer_clock_pointer);
     // Alias to non constant
-    double RHS_syntheticTick = 0;
+    double RHS_synthetic_tick = 0;
     HighsInt RHScount = 0;
     HighsInt* RHSindex = &rhs.index[0];
     double* RHSarray = &rhs.array[0];
@@ -1217,7 +1215,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
         const HighsInt start = Ustart[iLogic];
         const HighsInt end = Uend[iLogic];
         if (iLogic >= numRow) {
-          RHS_syntheticTick += (end - start);
+          RHS_synthetic_tick += (end - start);
         }
         for (HighsInt k = start; k < end; k++)
           RHSarray[Uindex[k]] -= pivotX * Uvalue[k];
@@ -1227,7 +1225,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
 
     // Save the count
     rhs.count = RHScount;
-    rhs.syntheticTick += RHS_syntheticTick * 15 + (UpivotCount - numRow) * 10;
+    rhs.synthetic_tick += RHS_synthetic_tick * 15 + (UpivotCount - numRow) * 10;
     factor_timer.stop(use_clock, factor_timer_clock_pointer);
     if (report_ftran_upper_sparse) {
       const double final_density = 1.0 * rhs.count / numRow;
@@ -1257,7 +1255,7 @@ void HFactor::ftranU(HVector& rhs, double historical_density,
                &Ustart[0], &Ulastp[0], &Uindex[0], &Uvalue[0], &rhs);
     factor_timer.stop(use_clock, factor_timer_clock_pointer);
   }
-  if (updateMethod == UPDATE_METHOD_PF) {
+  if (updateMethod == kUpdateMethodPf) {
     factor_timer.start(FactorFtranUpperPF, factor_timer_clock_pointer);
     ftranPF(rhs);
     rhs.tight();
@@ -1271,7 +1269,7 @@ void HFactor::btranU(HVector& rhs, double historical_density,
                      HighsTimerClock* factor_timer_clock_pointer) const {
   FactorTimer factor_timer;
   factor_timer.start(FactorBtranUpper, factor_timer_clock_pointer);
-  if (updateMethod == UPDATE_METHOD_PF) {
+  if (updateMethod == kUpdateMethodPf) {
     factor_timer.start(FactorBtranUpperPF, factor_timer_clock_pointer);
     btranPF(rhs);
     factor_timer.stop(FactorBtranUpperPF, factor_timer_clock_pointer);
@@ -1279,10 +1277,10 @@ void HFactor::btranU(HVector& rhs, double historical_density,
 
   // The regular part
   double current_density = 1.0 * rhs.count / numRow;
-  if (current_density > hyperCANCEL || historical_density > hyperBTRANU) {
+  if (current_density > kHyperCancel || historical_density > kHyperBtranU) {
     factor_timer.start(FactorBtranUpperSps, factor_timer_clock_pointer);
     // Alias to non constant
-    double RHS_syntheticTick = 0;
+    double RHS_synthetic_tick = 0;
     HighsInt RHScount = 0;
     HighsInt* RHSindex = &rhs.index[0];
     double* RHSarray = &rhs.array[0];
@@ -1309,7 +1307,7 @@ void HFactor::btranU(HVector& rhs, double historical_density,
         const HighsInt start = URstart[iLogic];
         const HighsInt end = URend[iLogic];
         if (iLogic >= numRow) {
-          RHS_syntheticTick += (end - start);
+          RHS_synthetic_tick += (end - start);
         }
         for (HighsInt k = start; k < end; k++)
           RHSarray[URindex[k]] -= pivotX * URvalue[k];
@@ -1319,7 +1317,7 @@ void HFactor::btranU(HVector& rhs, double historical_density,
 
     // Save the count
     rhs.count = RHScount;
-    rhs.syntheticTick += RHS_syntheticTick * 15 + (UpivotCount - numRow) * 10;
+    rhs.synthetic_tick += RHS_synthetic_tick * 15 + (UpivotCount - numRow) * 10;
     factor_timer.stop(FactorBtranUpperSps, factor_timer_clock_pointer);
   } else {
     factor_timer.start(FactorBtranUpperHyper, factor_timer_clock_pointer);
@@ -1329,7 +1327,7 @@ void HFactor::btranU(HVector& rhs, double historical_density,
   }
 
   // The update part
-  if (updateMethod == UPDATE_METHOD_FT) {
+  if (updateMethod == kUpdateMethodFt) {
     factor_timer.start(FactorBtranUpperFT, factor_timer_clock_pointer);
     rhs.tight();
     rhs.pack();
@@ -1338,7 +1336,7 @@ void HFactor::btranU(HVector& rhs, double historical_density,
     rhs.tight();
     factor_timer.stop(FactorBtranUpperFT, factor_timer_clock_pointer);
   }
-  if (updateMethod == UPDATE_METHOD_MPF) {
+  if (updateMethod == kUpdateMethodMpf) {
     factor_timer.start(FactorBtranUpperMPF, factor_timer_clock_pointer);
     rhs.tight();
     rhs.pack();
@@ -1383,9 +1381,9 @@ void HFactor::ftranFT(HVector& vector) const {
 
   // Save count back
   vector.count = RHScount;
-  vector.syntheticTick += PFpivotCount * 20 + PFstart[PFpivotCount] * 5;
+  vector.synthetic_tick += PFpivotCount * 20 + PFstart[PFpivotCount] * 5;
   if (PFstart[PFpivotCount] / (PFpivotCount + 1) < 5) {
-    vector.syntheticTick += PFstart[PFpivotCount] * 5;
+    vector.synthetic_tick += PFstart[PFpivotCount] * 5;
   }
 }
 
@@ -1399,7 +1397,7 @@ void HFactor::btranFT(HVector& vector) const {
   const double* PFvalue = this->PFvalue.size() > 0 ? &this->PFvalue[0] : NULL;
 
   // Alias to non constant
-  double RHS_syntheticTick = 0;
+  double RHS_synthetic_tick = 0;
   HighsInt RHScount = vector.count;
   HighsInt* RHSindex = &vector.index[0];
   double* RHSarray = &vector.array[0];
@@ -1411,7 +1409,7 @@ void HFactor::btranFT(HVector& vector) const {
     if (pivotX) {
       const HighsInt start = PFstart[i];
       const HighsInt end = PFstart[i + 1];
-      RHS_syntheticTick += (end - start);
+      RHS_synthetic_tick += (end - start);
       for (HighsInt k = start; k < end; k++) {
         HighsInt iRow = PFindex[k];
         double value0 = RHSarray[iRow];
@@ -1422,7 +1420,7 @@ void HFactor::btranFT(HVector& vector) const {
     }
   }
 
-  vector.syntheticTick += RHS_syntheticTick * 15 + PFpivotCount * 10;
+  vector.synthetic_tick += RHS_synthetic_tick * 15 + PFpivotCount * 10;
 
   // Save count back
   vector.count = RHScount;

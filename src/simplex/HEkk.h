@@ -11,7 +11,7 @@
 /*                                                                       */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /**@file simplex/HEkk.h
- * @brief Phase 2 primal simplex solver for HiGHS
+ * @brief Primal simplex solver for HiGHS
  */
 #ifndef SIMPLEX_HEKK_H_
 #define SIMPLEX_HEKK_H_
@@ -38,22 +38,20 @@ class HEkk {
   HighsTimer& timer_;
   HighsSimplexAnalysis analysis_;
 
-  HighsStatus passLp(const HighsLp& lp);
+  HighsStatus passLp(const HighsLp& pass_lp);
   HighsStatus solve();
   HighsStatus cleanup();
   HighsStatus setBasis();
-  HighsStatus setBasis(const HighsBasis& basis);
+  HighsStatus setBasis(const HighsBasis& highs_basis);
   HighsStatus setBasis(const SimplexBasis& basis);
 
   HighsSolution getSolution();
   HighsBasis getHighsBasis();
-  const SimplexBasis& getSimplexBasis() { return simplex_basis_; }
+  const SimplexBasis& getSimplexBasis() { return basis_; }
 
   HighsInt initialiseSimplexLpBasisAndFactor(
       const bool only_from_known_basis = false);
   void handleRankDeficiency();
-  // This will go when only using HEkk
-  HighsSolutionParams getSolutionParams();
 
   // Interface methods
   void appendColsToVectors(const HighsInt num_new_col,
@@ -72,17 +70,22 @@ class HEkk {
 
   // Make this private later
   void chooseSimplexStrategyThreads(const HighsOptions& options,
-                                    HighsSimplexInfo& simplex_info);
+                                    HighsSimplexInfo& info);
 
   double cost_scale_ = 1;
   HighsInt iteration_count_ = 0;
-  bool solve_bailout_ = false;
 
-  HighsLp simplex_lp_;
-  HighsSimplexLpStatus simplex_lp_status_;
-  HighsSimplexInfo simplex_info_;
-  HighsModelStatus scaled_model_status_;
-  SimplexBasis simplex_basis_;
+  bool solve_bailout_;
+  bool called_return_from_solve_;
+  SimplexAlgorithm exit_algorithm;
+  HighsInt return_primal_solution_status;
+  HighsInt return_dual_solution_status;
+
+  HighsLp lp_;
+  HighsSimplexStatus status_;
+  HighsSimplexInfo info_;
+  HighsModelStatus model_status_;
+  SimplexBasis basis_;
   HighsHashTable<uint64_t> visited_basis_;
   HighsRandom random_;
 
@@ -92,11 +95,12 @@ class HEkk {
   HMatrix matrix_;
   HFactor factor_;
 
-  double build_syntheticTick_;
-  double total_syntheticTick_;
+  double build_synthetic_tick_;
+  double total_synthetic_tick_;
 
  private:
   void initialiseForNewLp();
+  bool isUnconstrainedLp();
   HighsStatus initialiseForSolve();
   void setSimplexOptions();
   void updateSimplexOptions();
@@ -114,9 +118,9 @@ class HEkk {
   void initialiseMatrix();
   void allocateWorkAndBaseArrays();
   void initialiseCost(const SimplexAlgorithm algorithm,
-                      const HighsInt solvePhase, const bool perturb = false);
+                      const HighsInt solve_phase, const bool perturb = false);
   void initialiseBound(const SimplexAlgorithm algorithm,
-                       const HighsInt solvePhase, const bool perturb = false);
+                       const HighsInt solve_phase, const bool perturb = false);
   void initialiseLpColCost();
   void initialiseLpRowCost();
   void initialiseLpColBound();
@@ -162,7 +166,6 @@ class HEkk {
   void invalidatePrimalMaxSumInfeasibilityRecord();
   void invalidateDualInfeasibilityRecord();
   void invalidateDualMaxSumInfeasibilityRecord();
-  bool bailoutReturn();
   bool bailoutOnTimeIterations();
   HighsStatus returnFromSolve(const HighsStatus return_status);
 

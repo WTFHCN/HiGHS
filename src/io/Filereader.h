@@ -36,6 +36,7 @@ std::string extractModelName(const std::string filename);
 class Filereader {
  public:
   virtual FilereaderRetcode readModelFromFile(const HighsOptions& options,
+                                              const std::string filename,
                                               HighsLp& model) = 0;
   virtual HighsStatus writeModelToFile(const HighsOptions& options,
                                        const std::string filename,

@@ -32,9 +32,56 @@ class HighsModelObject;
 
 using std::string;
 
-void getPrimalDualInfeasibilities(const HighsLp& lp, const HighsBasis& basis,
+struct HighsPrimalDualErrors {
+  HighsInt num_nonzero_basic_duals;
+  HighsInt num_large_nonzero_basic_duals;
+  double max_nonzero_basic_dual;
+  double sum_nonzero_basic_duals;
+  HighsInt num_off_bound_nonbasic;
+  double max_off_bound_nonbasic;
+  double sum_off_bound_nonbasic;
+  HighsInt num_primal_residual;
+  double max_primal_residual;
+  double sum_primal_residual;
+  HighsInt num_dual_residual;
+  double max_dual_residual;
+  double sum_dual_residual;
+};
+
+void getKktFailures(const HighsLp& lp, const HighsSolution& solution,
+                    const HighsBasis& basis,
+                    HighsSolutionParams& solution_params);
+
+void getKktFailures(const HighsLp& lp, const HighsSolution& solution,
+                    const HighsBasis& basis,
+                    HighsSolutionParams& solution_params,
+                    HighsPrimalDualErrors& primal_dual_errors,
+                    const bool get_residuals = false);
+
+void getVariableKktFailures(const double primal_feasibility_tolerance,
+                            const double dual_feasibility_tolerance,
+                            const double lower, const double upper,
+                            const double value, const double dual,
+                            HighsBasisStatus* status_pointer,
+                            double& primal_infeasibility,
+                            double& dual_infeasibility, double& value_residual);
+
+void getReportKktFailures(const HighsOptions& options, const HighsLp& lp,
+                          const HighsSolution& solution,
+                          const HighsBasis& basis);
+
+bool reportKktFailureInt(const std::string message,
+                         const HighsLogOptions& log_options,
+                         const HighsInt value);
+
+bool reportKktFailureDouble(const std::string message,
+                            const HighsLogOptions& log_options,
+                            const double value);
+
+void getPrimalDualInfeasibilities(const HighsLp& lp,
                                   const HighsSolution& solution,
                                   HighsSolutionParams& solution_params);
+double computeObjectiveValue(const HighsLp& lp, const HighsSolution& solution);
 void refineBasis(const HighsLp& lp, const HighsSolution& solution,
                  HighsBasis& basis);
 
@@ -75,8 +122,15 @@ void copyFromSolutionParams(HighsInfo& highs_info,
                             const HighsSolutionParams& solution_params);
 
 bool isBasisConsistent(const HighsLp& lp, const HighsBasis& basis);
+
+bool isPrimalSolutionRightSize(const HighsLp& lp,
+                               const HighsSolution& solution);
+bool isDualSolutionRightSize(const HighsLp& lp, const HighsSolution& solution);
 bool isSolutionRightSize(const HighsLp& lp, const HighsSolution& solution);
 bool isBasisRightSize(const HighsLp& lp, const HighsBasis& basis);
+
+void clearPrimalSolutionUtil(HighsSolution& solution);
+void clearDualSolutionUtil(HighsSolution& solution);
 void clearSolutionUtil(HighsSolution& solution);
 void clearBasisUtil(HighsBasis& solution);
 

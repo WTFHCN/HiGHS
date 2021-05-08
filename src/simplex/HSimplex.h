@@ -39,36 +39,33 @@ void choosePriceTechnique(const HighsInt price_strategy,
                           const double row_ep_density, bool& use_col_price,
                           bool& use_row_price_w_switch);
 
-void appendNonbasicColsToBasis(HighsLp& lp, HighsBasis& basis,
+void appendNonbasicColsToBasis(HighsLp& lp, HighsBasis& highs_basis,
                                HighsInt XnumNewCol);
 void appendNonbasicColsToBasis(HighsLp& lp, SimplexBasis& basis,
                                HighsInt XnumNewCol);
 
-void appendBasicRowsToBasis(HighsLp& lp, HighsBasis& basis,
+void appendBasicRowsToBasis(HighsLp& lp, HighsBasis& highs_basis,
                             HighsInt XnumNewRow);
 void appendBasicRowsToBasis(HighsLp& lp, SimplexBasis& basis,
                             HighsInt XnumNewRow);
 
 void invalidateSimplexLpBasisArtifacts(
-    HighsSimplexLpStatus&
-        simplex_lp_status  // !< Status of simplex LP whose
-                           // basis artifacts are to be invalidated
+    HighsSimplexStatus& status  // !< Status of simplex LP whose
+                                // basis artifacts are to be invalidated
 );
 
 void invalidateSimplexLpBasis(
-    HighsSimplexLpStatus& simplex_lp_status  // !< Status of simplex LP whose
-                                             // basis is to be invalidated
+    HighsSimplexStatus& status  // !< Status of simplex LP whose
+                                // basis is to be invalidated
 );
 
 void invalidateSimplexLp(
-    HighsSimplexLpStatus&
-        simplex_lp_status  // !< Status of simplex LP to be invalidated
+    HighsSimplexStatus& status  // !< Status of simplex LP to be invalidated
 );
 
 void updateSimplexLpStatus(
-    HighsSimplexLpStatus&
-        simplex_lp_status,  // !< Status of simplex LP to be updated
-    LpAction action         // !< Action prompting update
+    HighsSimplexStatus& status,  // !< Status of simplex LP to be updated
+    LpAction action              // !< Action prompting update
 );
 
 void unscaleSolution(HighsSolution& solution, const HighsScale scale);
@@ -80,7 +77,7 @@ HighsStatus deleteScale(const HighsLogOptions& log_options,
 void getUnscaledInfeasibilitiesAndNewTolerances(
     const HighsOptions& options, const HighsLp& lp,
     const HighsModelStatus model_status, const SimplexBasis& basis,
-    const HighsSimplexInfo& simplex_info, const HighsScale& scale,
+    const HighsSimplexInfo& info, const HighsScale& scale,
     HighsSolutionParams& solution_params,
     double& new_primal_feasibility_tolerance,
     double& new_dual_feasibility_tolerance);

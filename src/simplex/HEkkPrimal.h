@@ -31,14 +31,21 @@ const SimplexAlgorithm algorithm = SimplexAlgorithm::kPrimal;
 
 class HEkkPrimal {
  public:
-  HEkkPrimal(HEkk& simplex) : ekk_instance_(simplex) { initialise(); }
+  HEkkPrimal(HEkk& simplex) : ekk_instance_(simplex) { initialiseInstance(); }
   /**
    * @brief Solve a model instance
    */
   HighsStatus solve();
 
  private:
-  void initialise();
+  /**
+   * @brief Initialise a primal simplex instance
+   */
+  void initialiseInstance();
+  /**
+   * @brief Initialise a primal simplex solve
+   */
+  void initialiseSolve();
   void solvePhase1();
   void solvePhase2();
   void cleanup();
@@ -106,9 +113,10 @@ class HEkkPrimal {
   HighsInt num_col;
   HighsInt num_row;
   HighsInt num_tot;
-  HighsInt solvePhase;
+  HighsInt solve_phase;
   double primal_feasibility_tolerance;
   double dual_feasibility_tolerance;
+  double objective_target;
   HighsInt rebuild_reason;
   // Pivot related
   HighsInt variable_in;

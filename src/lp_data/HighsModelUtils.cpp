@@ -323,26 +323,32 @@ std::string utilModelStatusToString(const HighsModelStatus model_status) {
     case HighsModelStatus::kModelEmpty:
       return "Model empty";
       break;
+    case HighsModelStatus::kOptimal:
+      return "Optimal";
+      break;
     case HighsModelStatus::kInfeasible:
       return "Infeasible";
+      break;
+    case HighsModelStatus::kUnboundedOrInfeasible:
+      return "Primal infeasible or unbounded";
       break;
     case HighsModelStatus::kUnbounded:
       return "Unbounded";
       break;
-    case HighsModelStatus::kOptimal:
-      return "Optimal";
+    case HighsModelStatus::kObjectiveBound:
+      return "Reached objective bound";
       break;
-    case HighsModelStatus::kReachedDualObjectiveValueUpperBound:
-      return "Reached dual objective upper bound";
+    case HighsModelStatus::kObjectiveTarget:
+      return "Reached objective target";
       break;
-    case HighsModelStatus::kReachedTimeLimit:
+    case HighsModelStatus::kTimeLimit:
       return "Reached time limit";
       break;
-    case HighsModelStatus::kReachedIterationLimit:
+    case HighsModelStatus::kIterationLimit:
       return "Reached iteration limit";
       break;
-    case HighsModelStatus::kUnboundedOrInfeasible:
-      return "Primal infeasible or unbounded";
+    case HighsModelStatus::kUnknown:
+      return "Unknown";
       break;
     default:
 #ifdef HiGHSDEV
@@ -359,28 +365,6 @@ void zeroHighsIterationCounts(HighsIterationCounts& iteration_counts) {
   iteration_counts.simplex = 0;
   iteration_counts.ipm = 0;
   iteration_counts.crossover = 0;
-}
-
-void zeroHighsIterationCounts(HighsInfo& info) {
-  info.simplex_iteration_count = 0;
-  info.ipm_iteration_count = 0;
-  info.crossover_iteration_count = 0;
-  info.mip_node_count = -1;
-}
-
-void copyHighsIterationCounts(const HighsIterationCounts& iteration_counts,
-                              HighsInfo& info) {
-  info.simplex_iteration_count = iteration_counts.simplex;
-  info.ipm_iteration_count = iteration_counts.ipm;
-  info.crossover_iteration_count = iteration_counts.crossover;
-  info.mip_node_count = -1;
-}
-
-void copyHighsIterationCounts(const HighsInfo& info,
-                              HighsIterationCounts& iteration_counts) {
-  iteration_counts.simplex = info.simplex_iteration_count;
-  iteration_counts.ipm = info.ipm_iteration_count;
-  iteration_counts.crossover = info.crossover_iteration_count;
 }
 
 // Deduce the HighsStatus value corresponding to a HighsModelStatus value.
@@ -408,11 +392,15 @@ HighsStatus highsStatusFromHighsModelStatus(HighsModelStatus model_status) {
       return HighsStatus::kOk;
     case HighsModelStatus::kUnbounded:
       return HighsStatus::kOk;
-    case HighsModelStatus::kReachedDualObjectiveValueUpperBound:
+    case HighsModelStatus::kObjectiveBound:
       return HighsStatus::kOk;
-    case HighsModelStatus::kReachedTimeLimit:
+    case HighsModelStatus::kObjectiveTarget:
+      return HighsStatus::kOk;
+    case HighsModelStatus::kTimeLimit:
       return HighsStatus::kWarning;
-    case HighsModelStatus::kReachedIterationLimit:
+    case HighsModelStatus::kIterationLimit:
+      return HighsStatus::kWarning;
+    case HighsModelStatus::kUnknown:
       return HighsStatus::kWarning;
     default:
       return HighsStatus::kError;

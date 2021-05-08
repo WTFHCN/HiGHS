@@ -113,14 +113,12 @@ static HighsInt setupOptions(gamshighs_t* gh) {
     gh->options->simplex_iteration_limit = gevGetIntOpt(gh->gev, gevIterLim);
 
   if (gevGetIntOpt(gh->gev, gevUseCutOff))
-    gh->options->dual_objective_value_upper_bound =
-        gevGetDblOpt(gh->gev, gevCutOff);
+    gh->options->objective_bound = gevGetDblOpt(gh->gev, gevCutOff);
 
   if (gmoOptFile(gh->gmo) > 0) {
     char optfilename[GMS_SSSIZE];
     gmoNameOptFile(gh->gmo, optfilename);
-    gh->options->options_file = optfilename;
-    if (!loadOptionsFromFile(*gh->options)) return 1;
+    if (!loadOptionsFromFile(*gh->options, optfilename)) return 1;
   }
 
   gh->options->printmsgcb = gevprint;
@@ -241,10 +239,10 @@ static HighsInt setupProblem(gamshighs_t* gh) {
       if (basis.row_status[i] == HighsBasisStatus::kBasic) ++nbasic;
     }
 
-    basis.valid_ = nbasic == numRow;
+    basis.valid = nbasic == numRow;
     /* HiGHS compiled without NDEBUG defined currently raises an assert in
      * basisOK() if given an invalid basis */
-    if (basis.valid_) gh->highs->setBasis(basis);
+    if (basis.valid) gh->highs->setBasis(basis);
   }
 
   rc = 0;
@@ -283,11 +281,25 @@ static HighsInt processSolve(gamshighs_t* gh) {
       gmoSolveStatSet(gmo, gmoSolveStat_Solver);
       break;
 
+    case HighsModelStatus::kOptimal:
+      gmoModelStatSet(gmo, gmoModelStat_OptimalGlobal);
+      gmoSolveStatSet(gmo, gmoSolveStat_Normal);
+      writesol = true;
+      break;
+
     case HighsModelStatus::kInfeasible:
       // TODO is there an infeasible solution to write?
       // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleGlobal :
       // gmoModelStat_InfeasibleNoSolution);
       gmoModelStatSet(gmo, gmoModelStat_InfeasibleNoSolution);
+      gmoSolveStatSet(gmo, gmoSolveStat_Normal);
+      break;
+
+    case HighsModelStatus::kUnboundedOrInfeasible:
+      // TODO is there a (feasible) solution to write?
+      // gmoModelStatSet(gmo, havesol ? gmoModelStat_Unbounded :
+      // gmoModelStat_UnboundedNoSolution);
+      gmoModelStatSet(gmo, gmoModelStat_NoSolutionReturned);
       gmoSolveStatSet(gmo, gmoSolveStat_Normal);
       break;
 
@@ -299,13 +311,7 @@ static HighsInt processSolve(gamshighs_t* gh) {
       gmoSolveStatSet(gmo, gmoSolveStat_Normal);
       break;
 
-    case HighsModelStatus::kOptimal:
-      gmoModelStatSet(gmo, gmoModelStat_OptimalGlobal);
-      gmoSolveStatSet(gmo, gmoSolveStat_Normal);
-      writesol = true;
-      break;
-
-    case HighsModelStatus::kReachedDualObjectiveValueUpperBound:
+    case HighsModelStatus::kObjectiveBound:
       // TODO is there a solution to write and is it feasible?
       // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleIntermed :
       // gmoModelStat_NoSolutionReturned);
@@ -313,7 +319,15 @@ static HighsInt processSolve(gamshighs_t* gh) {
       gmoSolveStatSet(gmo, gmoSolveStat_Solver);
       break;
 
-    case HighsModelStatus::kReachedTimeLimit:
+    case HighsModelStatus::kObjectiveTarget:
+      // TODO is there a solution to write and is it feasible?
+      // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleIntermed :
+      // gmoModelStat_NoSolutionReturned);
+      gmoModelStatSet(gmo, gmoModelStat_NoSolutionReturned);
+      gmoSolveStatSet(gmo, gmoSolveStat_Solver);
+      break;
+
+    case HighsModelStatus::kTimeLimit:
       // TODO is there an (feasible) solution to write?
       // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleIntermed :
       // gmoModelStat_NoSolutionReturned);
@@ -321,7 +335,15 @@ static HighsInt processSolve(gamshighs_t* gh) {
       gmoSolveStatSet(gmo, gmoSolveStat_Resource);
       break;
 
-    case HighsModelStatus::kReachedIterationLimit:
+    case HighsModelStatus::kIterationLimit:
+      // TODO is there an (feasible) solution to write?
+      // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleIntermed :
+      // gmoModelStat_NoSolutionReturned);
+      gmoModelStatSet(gmo, gmoModelStat_NoSolutionReturned);
+      gmoSolveStatSet(gmo, gmoSolveStat_Iteration);
+      break;
+
+    case HighsModelStatus::kUnknown:
       // TODO is there an (feasible) solution to write?
       // gmoModelStatSet(gmo, havesol ? gmoModelStat_InfeasibleIntermed :
       // gmoModelStat_NoSolutionReturned);
@@ -338,12 +360,12 @@ static HighsInt processSolve(gamshighs_t* gh) {
     assert((HighsInt)sol.row_dual.size() == gmoM(gmo));
 
     const HighsBasis& basis = highs->getBasis();
-    assert(!basis.valid_ || (HighsInt)basis.col_status.size() == gmoN(gmo));
-    assert(!basis.valid_ || (HighsInt)basis.row_status.size() == gmoM(gmo));
+    assert(!basis.valid || (HighsInt)basis.col_status.size() == gmoN(gmo));
+    assert(!basis.valid || (HighsInt)basis.row_status.size() == gmoM(gmo));
 
     for (HighsInt i = 0; i < gmoN(gmo); ++i) {
       gmoVarEquBasisStatus basisstat;
-      if (basis.valid_)
+      if (basis.valid)
         basisstat = translateBasisStatus(basis.col_status[i]);
       else
         basisstat = gmoBstat_Super;
@@ -357,7 +379,7 @@ static HighsInt processSolve(gamshighs_t* gh) {
 
     for (HighsInt i = 0; i < gmoM(gmo); ++i) {
       gmoVarEquBasisStatus basisstat;
-      if (basis.valid_)
+      if (basis.valid)
         basisstat = translateBasisStatus(basis.row_status[i]);
       else
         basisstat = gmoBstat_Super;

@@ -207,11 +207,11 @@ class HighsLpRelaxation {
   void recoverBasis();
 
   void setObjectiveLimit(double objlim = kHighsInf) {
-    // lpsolver.setOptionValue("dual_objective_value_upper_bound", objlim);
+    // lpsolver.setOptionValue("objective_bound", objlim);
   }
 
   void storeBasis() {
-    if (!currentbasisstored && lpsolver.getBasis().valid_) {
+    if (!currentbasisstored && lpsolver.getBasis().valid) {
       basischeckpoint = std::make_shared<HighsBasis>(lpsolver.getBasis());
       currentbasisstored = true;
     }

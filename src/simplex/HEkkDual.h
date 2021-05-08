@@ -43,10 +43,11 @@ class HEkkDual {
  public:
   HEkkDual(HEkk& simplex)
       : ekk_instance_(simplex), dualRow(simplex), dualRHS(simplex) {
+    initialiseInstance();
     dualRow.setup();
-    for (HighsInt i = 0; i < kHighsSlicedLimit; i++)
-      slice_dualRow.push_back(HEkkDualRow(simplex));
     dualRHS.setup();
+    if (!(ekk_instance_.info_.simplex_strategy == kSimplexStrategyDualPlain))
+      initialiseInstanceParallel(simplex);
   }
 
   /**
@@ -58,25 +59,21 @@ class HEkkDual {
 
  public:
   /**
-   * @brief Set solver options from simplex options
-   */
-  void options();
-  /**
    * @brief Initialise a dual simplex instance
    *
    * Copy dimensions and pointers to matrix, factor and solver-related
-   * model data, plus tolerances. Sets up local std::vectors (columnDSE,
-   * columnBFRT, column, row_ep and row_ap), scalars for their average
-   * density and buffers for dualRow and dualRHS.
+   * model data, plus tolerances. Sets up local std::vectors
+   * (columnDSE, columnBFRT, column, row_ep and row_ap), and buffers
+   * for dualRow and dualRHS.
    */
-  void init();
+  void initialiseInstance();
 
   /**
    * @brief Initialise parallel aspects of a dual simplex instance
    *
    * Sets up data structures for SIP or PAMI
    */
-  void initParallel();
+  void initialiseInstanceParallel(HEkk& simplex);
 
   /**
    * @brief Initialise matrix slices and slices of row_ap or dualRow for SIP or
@@ -89,6 +86,11 @@ class HEkkDual {
       const HighsInt init_sliced_num  //!< Ideal number of slices - true number
                                       //!< is modified in light of limits
   );
+
+  /**
+   * @brief Initialise a dual simplex solve
+   */
+  void initialiseSolve();
 
   /**
    * @brief Perform Phase 1 dual simplex iterations
@@ -121,7 +123,7 @@ class HEkkDual {
    * All the methods it calls have as their first line "if (rebuild_reason)
    * return;", where rebuild_reason is, for example, set to 1 when CHUZR
    * finds no candidate. This causes a break from the inner loop of
-   * solve_phase% and, hence, a call to rebuild().
+   * solvePhase% and, hence, a call to rebuild().
    */
   void iterate();
 
@@ -264,7 +266,7 @@ class HEkkDual {
   void interpretDualEdgeWeightStrategy(
       const HighsInt simplex_dual_edge_weight_strategy);
 
-  bool reachedExactDualObjectiveValueUpperBound();
+  bool reachedExactObjectiveBound();
   double computeExactDualObjectiveValue();
 
   /**
@@ -364,16 +366,11 @@ class HEkkDual {
 
   bool checkNonUnitWeightError(std::string message);
   bool dualInfoOk(const HighsLp& lp);
-  bool bailoutReturn();
-  bool bailoutOnTimeIterations();
   bool bailoutOnDualObjective();
   HighsDebugStatus debugDualSimplex(const std::string message,
                                     const bool initialise = false);
   double* getWorkEdWt() { return &dualRHS.workEdWt[0]; };
   double* getWorkEdWtFull() { return &dualRHS.workEdWtFull[0]; };
-
-  bool solve_bailout;  //!< Set true if control is to be returned immediately to
-                       //!< calling function
 
   // Devex scalars
   HighsInt num_devex_iterations =
@@ -419,9 +416,9 @@ class HEkkDual {
 
   double Td;  // Tolerance for dual
   double dual_feasibility_tolerance;
-  double dual_objective_value_upper_bound;
+  double objective_bound;
 
-  HighsInt solvePhase;
+  HighsInt solve_phase;
   HighsInt rebuild_reason;
 
   HVector row_ep;
@@ -507,8 +504,8 @@ class HEkkDual {
   MChoice multi_choice[kHighsThreadLimit];
   MFinish multi_finish[kHighsThreadLimit];
 
-  //  double build_syntheticTick;
-  //  double total_syntheticTick;
+  //  double build_synthetic_tick;
+  //  double total_synthetic_tick;
 };
 
 #endif /* SIMPLEX_HEKKDUAL_H_ */
