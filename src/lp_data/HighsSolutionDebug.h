@@ -21,6 +21,32 @@
 #include "lp_data/HighsOptions.h"
 #include "lp_data/HighsSolution.h"
 
+HighsDebugStatus debugHighsSolution(const string message,
+                                    const HighsOptions& options,
+                                    const HighsLp& lp,
+                                    const HighsSolution& solution,
+                                    const HighsBasis& basis);
+
+HighsDebugStatus debugHighsSolution(const std::string message,
+                                    const HighsModelObject& model);
+
+HighsDebugStatus debugHighsSolution(
+    const string message, const HighsOptions& options, const HighsLp& lp,
+    const HighsSolution& solution, const HighsBasis& basis,
+    const HighsModelStatus model_status, const HighsInfo& info);
+
+HighsDebugStatus debugHighsSolution(
+    const std::string message, const HighsOptions& options, const HighsLp& lp,
+    const HighsSolution& solution, const HighsBasis& basis,
+    const HighsModelStatus model_status,
+    const HighsSolutionParams& solution_params,
+    const bool check_model_status_and_solution_params);
+
+void debugReportHighsSolution(const string message,
+                              const HighsLogOptions& log_options,
+                              const HighsSolutionParams& solution_params,
+                              const HighsModelStatus model_status);
+
 HighsDebugStatus debugBasisRightSize(const HighsOptions& options,
                                      const HighsLp lp, const HighsBasis& basis);
 
@@ -32,53 +58,11 @@ HighsDebugStatus debugDualSolutionRightSize(const HighsOptions& options,
                                             const HighsLp lp,
                                             const HighsSolution& solution);
 
-HighsDebugStatus debugSolutionRightSize(const HighsOptions& options,
-                                        const HighsLp lp,
-                                        const HighsSolution& solution);
-
 HighsDebugStatus debugBasisConsistent(const HighsOptions& options,
                                       const HighsLp lp,
                                       const HighsBasis& basis);
 
-HighsDebugStatus debugHighsBasicSolution(
-    const string message, const HighsModelObject& highs_model_object);
-
-HighsDebugStatus debugHighsBasicSolution(
-    const string message, const HighsOptions& options, const HighsLp& lp,
-    const HighsBasis& basis, const HighsSolution& solution,
-    const HighsInfo& info, const HighsModelStatus model_status);
-
-HighsDebugStatus debugHighsBasicSolution(const string message,
-                                         const HighsOptions& options,
-                                         const HighsLp& lp,
-                                         const HighsBasis& basis,
-                                         const HighsSolution& solution);
-
-HighsDebugStatus debugHighsBasicSolution(
-    const string message, const HighsOptions& options, const HighsLp& lp,
-    const HighsBasis& basis, const HighsSolution& solution,
-    const HighsSolutionParams& solution_params,
-    const HighsModelStatus model_status);
-
 // Methods below are not called externally
-
-HighsDebugStatus debugHaveBasisAndSolutionData(const HighsLp& lp,
-                                               const HighsBasis& basis,
-                                               const HighsSolution& solution);
-
-void debugHighsBasicSolutionPrimalDualInfeasibilitiesAndErrors(
-    const HighsOptions& options, const HighsLp& lp, const HighsBasis& basis,
-    const HighsSolution& solution, double& primal_objective_value,
-    double& dual_objective_value, HighsSolutionParams& solution_params,
-    HighsPrimalDualErrors& primal_dual_errors);
-
-bool debugBasicSolutionVariable(
-    bool report, const double primal_feasibility_tolerance,
-    const double dual_feasibility_tolerance, const HighsBasisStatus status,
-    const double lower, const double upper, const double value,
-    const double dual, HighsInt& num_non_basic_var, HighsInt& num_basic_var,
-    double& off_bound_nonbasic, double& primal_infeasibility,
-    double& dual_infeasibility);
 
 HighsDebugStatus debugAnalysePrimalDualErrors(
     const HighsOptions& options, HighsPrimalDualErrors& primal_dual_errors);
@@ -105,10 +89,5 @@ HighsDebugStatus debugCompareSolutionParamInteger(const string name,
                                                   const HighsOptions& options,
                                                   const HighsInt v0,
                                                   const HighsInt v1);
-
-void debugReportHighsBasicSolution(const string message,
-                                   const HighsOptions& options,
-                                   const HighsSolutionParams& solution_params,
-                                   const HighsModelStatus model_status);
 
 #endif  // SIMPLEX_HIGHSSOLUTIONDEBUG_H_

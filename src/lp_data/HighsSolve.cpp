@@ -59,10 +59,7 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
     bool imprecise_solution;
     // Use IPX to solve the LP
     try {
-      call_status =
-          solveLpIpx(options, model.timer_, model.lp_, imprecise_solution,
-                     model.basis_, model.solution_, model.iteration_counts_,
-                     model.unscaled_model_status_, model.solution_params_);
+      call_status = solveLpIpx(imprecise_solution, model);
     } catch (const std::exception& exception) {
       highsLogDev(options.log_options, HighsLogType::kError,
                   "Exception %s in solveLpIpx\n", exception.what());
@@ -77,8 +74,10 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
     model.scaled_model_status_ = model.unscaled_model_status_;
     // Get the infeasibilities and objective value
     // ToDo: This should take model.basis_ and use it if it's valid
-    getPrimalDualInfeasibilities(model.lp_, model.solution_,
-                                 model.solution_params_);
+    //    getPrimalDualInfeasibilities(model.lp_, model.solution_,
+    //    model.solution_params_);
+    getKktFailures(model.lp_, model.solution_, model.basis_,
+                   model.solution_params_);
     const double objective_function_value =
         computeObjectiveValue(model.lp_, model.solution_);
     model.solution_params_.objective_function_value = objective_function_value;
@@ -145,12 +144,9 @@ HighsStatus solveLp(HighsModelObject& model, const string message) {
       return HighsStatus::kError;
     }
   }
-  // ToDo: Possibly analyse the HiGHS (basic) solution - generalise to
-  // handle solution without basis? But doesn't returnFromRun do this?
-  //
-  // NB IPX may not yield a basic solution
-  if (model.basis_.valid) debugHighsBasicSolution(message, model);
-
+  // Analyse the HiGHS (basic) solution
+  if (debugHighsSolution(message, model) == HighsDebugStatus::kLogicalError)
+    return_status = HighsStatus::kError;
   return return_status;
 }
 
@@ -307,14 +303,14 @@ HighsStatus solveUnconstrainedLp(const HighsOptions& options, const HighsLp& lp,
   solution.dual_valid = true;
   basis.valid = true;
   if (solution_params.num_primal_infeasibility > 0) {
-    solution_params.primal_status = kHighsPrimalDualStatusInfeasiblePoint;
+    solution_params.primal_solution_status = kSolutionStatusInfeasible;
   } else {
-    solution_params.primal_status = kHighsPrimalDualStatusFeasiblePoint;
+    solution_params.primal_solution_status = kSolutionStatusFeasible;
   }
   if (solution_params.num_dual_infeasibility > 0) {
-    solution_params.dual_status = kHighsPrimalDualStatusInfeasiblePoint;
+    solution_params.dual_solution_status = kSolutionStatusInfeasible;
   } else {
-    solution_params.dual_status = kHighsPrimalDualStatusFeasiblePoint;
+    solution_params.dual_solution_status = kSolutionStatusFeasible;
   }
   if (solution_params.num_primal_infeasibility > 0) {
     // Primal infeasible

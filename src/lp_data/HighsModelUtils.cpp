@@ -271,32 +271,21 @@ HighsBasisStatus checkedVarHighsNonbasicStatus(
 }
 
 // Return a string representation of PrimalDualStatus
-std::string utilPrimalDualStatusToString(const HighsInt primal_dual_status) {
-  switch (primal_dual_status) {
-    case kHighsPrimalDualStatusNotset:
-      return "Not set";
+std::string utilSolutionStatusToString(const HighsInt solution_status) {
+  switch (solution_status) {
+    case kSolutionStatusNone:
+      return "None";
       break;
-    case kHighsPrimalDualStatusNoSolution:
-      return "No solution";
+    case kSolutionStatusInfeasible:
+      return "Infeasible";
       break;
-    case kHighsPrimalDualStatusUnknown:
-      return "Point of unknown feasibility";
-      break;
-    case kHighsPrimalDualStatusInfeasiblePoint:
-      return "Infeasible point";
-      break;
-    case kHighsPrimalDualStatusFeasiblePoint:
-      return "Feasible point";
+    case kSolutionStatusFeasible:
+      return "Feasible";
       break;
     default:
-#ifdef HiGHSDEV
-      printf("Primal/dual status %" HIGHSINT_FORMAT " not recognised\n",
-             primal_dual_status);
-#endif
-      return "Unrecognised primal/dual status";
-      break;
+      assert(1 == 0);
+      return "Unrecognised solution status";
   }
-  return "";
 }
 
 // Return a string representation of HighsModelStatus.
@@ -351,14 +340,9 @@ std::string utilModelStatusToString(const HighsModelStatus model_status) {
       return "Unknown";
       break;
     default:
-#ifdef HiGHSDEV
-      printf("HiGHS model status %" HIGHSINT_FORMAT " not recognised\n",
-             (HighsInt)model_status);
-#endif
+      assert(1 == 0);
       return "Unrecognised HiGHS model status";
-      break;
   }
-  return "";
 }
 
 void zeroHighsIterationCounts(HighsIterationCounts& iteration_counts) {

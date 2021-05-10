@@ -747,6 +747,8 @@ HighsStatus Highs::run() {
           resetModelStatusAndSolutionParams(hmos_[original_hmo]);
           // Set solution and its status
           hmos_[original_hmo].solution_ = presolve_.data_.recovered_solution_;
+          hmos_[original_hmo].solution_.value_valid = true;
+          hmos_[original_hmo].solution_.dual_valid = true;
 
           // Set basis and its status
           hmos_[original_hmo].basis_.valid = true;
@@ -760,9 +762,11 @@ HighsStatus Highs::run() {
           const bool force_debug = false;
           HighsInt save_highs_debug_level = options_.highs_debug_level;
           if (force_debug) options_.highs_debug_level = kHighsDebugLevelCostly;
-          debugHighsBasicSolution("After returning from postsolve", options_,
-                                  lp_, hmos_[original_hmo].basis_,
-                                  hmos_[original_hmo].solution_);
+          if (debugHighsSolution("After returning from postsolve", options_,
+                                 lp_, hmos_[original_hmo].solution_,
+                                 hmos_[original_hmo].basis_) ==
+              HighsDebugStatus::kLogicalError)
+            return returnFromRun(HighsStatus::kError);
           options_.highs_debug_level = save_highs_debug_level;
 
           // Now hot-start the simplex solver for the original_hmo
@@ -1821,8 +1825,8 @@ void Highs::reportModelStatusSolutionBasis(const std::string message,
   HighsModelStatus& scaled_model_status = scaled_model_status_;
   HighsSolution& solution = solution_;
   HighsBasis& basis = basis_;
-  HighsInt unscaled_primal_status = info_.primal_status;
-  HighsInt unscaled_dual_status = info_.dual_status;
+  HighsInt unscaled_primal_solution_status = info_.primal_solution_status;
+  HighsInt unscaled_dual_solution_status = info_.dual_solution_status;
   HighsLp& lp = lp_;
   if (hmo_ix >= 0) {
     assert(hmo_ix < (HighsInt)hmos_.size());
@@ -1830,8 +1834,10 @@ void Highs::reportModelStatusSolutionBasis(const std::string message,
     scaled_model_status = hmos_[hmo_ix].scaled_model_status_;
     solution = hmos_[hmo_ix].solution_;
     basis = hmos_[hmo_ix].basis_;
-    unscaled_primal_status = hmos_[hmo_ix].solution_params_.primal_status;
-    unscaled_dual_status = hmos_[hmo_ix].solution_params_.dual_status;
+    unscaled_primal_solution_status =
+        hmos_[hmo_ix].solution_params_.primal_solution_status;
+    unscaled_dual_solution_status =
+        hmos_[hmo_ix].solution_params_.dual_solution_status;
     lp = hmos_[hmo_ix].lp_;
   }
   printf(
@@ -1845,8 +1851,8 @@ void Highs::reportModelStatusSolutionBasis(const std::string message,
       "(%" HIGHSINT_FORMAT ", %" HIGHSINT_FORMAT ")\n\n",
       message.c_str(), modelStatusToString(model_status).c_str(),
       modelStatusToString(scaled_model_status).c_str(), lp.numCol_, lp.numRow_,
-      unscaled_primal_status, (HighsInt)solution.col_value.size(),
-      (HighsInt)solution.row_value.size(), unscaled_dual_status,
+      unscaled_primal_solution_status, (HighsInt)solution.col_value.size(),
+      (HighsInt)solution.row_value.size(), unscaled_dual_solution_status,
       (HighsInt)solution.col_dual.size(), (HighsInt)solution.row_dual.size(),
       basis.valid, (HighsInt)basis.col_status.size(),
       (HighsInt)basis.row_status.size());
@@ -1858,8 +1864,8 @@ std::string Highs::modelStatusToString(
   return utilModelStatusToString(model_status);
 }
 
-std::string Highs::primalDualStatusToString(const HighsInt primal_dual_status) {
-  return utilPrimalDualStatusToString(primal_dual_status);
+std::string Highs::solutionStatusToString(const HighsInt solution_status) {
+  return utilSolutionStatusToString(solution_status);
 }
 
 void Highs::setMatrixOrientation(const MatrixOrientation& desired_orientation) {
@@ -2125,8 +2131,8 @@ void Highs::setHighsModelStatusBasisSolutionAndInfo() {
   info_.crossover_iteration_count = iteration_counts_.crossover;
 
   HighsSolutionParams& solution_params = hmos_[0].solution_params_;
-  info_.primal_status = solution_params.primal_status;
-  info_.dual_status = solution_params.dual_status;
+  info_.primal_solution_status = solution_params.primal_solution_status;
+  info_.dual_solution_status = solution_params.dual_solution_status;
   info_.objective_function_value = solution_params.objective_function_value;
   info_.num_primal_infeasibilities = solution_params.num_primal_infeasibility;
   info_.max_primal_infeasibility = solution_params.max_primal_infeasibility;
@@ -2248,8 +2254,8 @@ void Highs::clearModelStatus() {
 }
 
 void Highs::clearSolution() {
-  info_.primal_status = (HighsInt)kHighsPrimalDualStatusNotset;
-  info_.dual_status = (HighsInt)kHighsPrimalDualStatusNotset;
+  info_.primal_solution_status = kSolutionStatusNone;
+  info_.dual_solution_status = kSolutionStatusNone;
   clearSolutionUtil(solution_);
 }
 
@@ -2259,8 +2265,6 @@ void Highs::clearInfo() { info_.clear(); }
 
 void Highs::noSolution() {
   clearSolution();
-  info_.primal_status = kHighsPrimalDualStatusNoSolution;
-  info_.dual_status = kHighsPrimalDualStatusNoSolution;
   info_.valid = true;
 }
 
@@ -2316,10 +2320,10 @@ HighsStatus Highs::returnFromRun(const HighsStatus run_return_status) {
 
     case HighsModelStatus::kOptimal:
       // The following is an aspiration
-      //        assert(info_.primal_status ==
-      //                   (HighsInt)kHighsPrimalDualStatusFeasiblePoint);
-      //        assert(info_.dual_status ==
-      //                   (HighsInt)kHighsPrimalDualStatusFeasiblePoint);
+      //
+      // assert(info_.primal_solution_status == kSolutionStatusFeasible);
+      //
+      // assert(info_.dual_solution_status == kSolutionStatusFeasible);
       assert(model_status_ == HighsModelStatus::kNotset ||
              model_status_ == HighsModelStatus::kOptimal);
       assert(return_status == HighsStatus::kOk);
@@ -2419,13 +2423,11 @@ HighsStatus Highs::returnFromRun(const HighsStatus run_return_status) {
         HighsDebugStatus::kLogicalError)
       return_status = HighsStatus::kError;
   }
-  if (have_dual_solution && have_basis) {
-    if (debugHighsBasicSolution("Return from run()", options_, lp_, basis_,
-                                solution_, info_, model_status_) ==
-        HighsDebugStatus::kLogicalError)
-      return_status = HighsStatus::kError;
-  }
-  getReportKktFailures(options_, lp_, solution_, basis_);
+  if (debugHighsSolution("Return from run()", options_, lp_, solution_, basis_,
+                         model_status_,
+                         info_) == HighsDebugStatus::kLogicalError)
+    return_status = HighsStatus::kError;
+  //  getReportKktFailures(options_, lp_, solution_, basis_);
   if (debugInfo(options_, lp_, basis_, solution_, info_,
                 scaled_model_status_) == HighsDebugStatus::kLogicalError)
     return_status = HighsStatus::kError;

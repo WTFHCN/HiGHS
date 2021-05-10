@@ -87,13 +87,11 @@ enum class ObjSense { kMinimize = 1, kMaximize = -1 };
 enum class MatrixOrientation { kNone = 0, kColwise, kRowwise };
 
 enum PrimalDualStatus {
-  kHighsPrimalDualStatusNotset = -1,
-  kHighsPrimalDualStatusNoSolution,
-  kHighsPrimalDualStatusUnknown,
-  kHighsPrimalDualStatusInfeasiblePoint,
-  kHighsPrimalDualStatusFeasiblePoint,
-  kHighsPrimalDualStatusMin = kHighsPrimalDualStatusNotset,
-  kHighsPrimalDualStatusMax = kHighsPrimalDualStatusFeasiblePoint
+  kSolutionStatusNone = 0,
+  kSolutionStatusInfeasible,
+  kSolutionStatusFeasible,
+  kSolutionStatusMin = kSolutionStatusNone,
+  kSolutionStatusMax = kSolutionStatusFeasible
 };
 
 const std::string kHighsFilenameDefault = "";
