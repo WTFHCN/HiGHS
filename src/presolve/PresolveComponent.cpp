@@ -22,6 +22,7 @@ HighsStatus PresolveComponent::init(const HighsLp& lp, HighsTimer& timer,
                                     bool mip) {
   data_.postSolveStack.initializeIndexMaps(lp.numRow_, lp.numCol_);
   data_.reduced_lp_ = lp;
+  this->timer = &timer;
   return HighsStatus::kOk;
 }
 
@@ -29,6 +30,33 @@ HighsStatus PresolveComponent::setOptions(const HighsOptions& options) {
   options_ = &options;
 
   return HighsStatus::kOk;
+}
+
+std::string PresolveComponent::presolveStatusToString(
+    const HighsPresolveStatus presolve_status) {
+  switch (presolve_status) {
+    case HighsPresolveStatus::kNotPresolved:
+      return "Not presolved";
+    case HighsPresolveStatus::kNotReduced:
+      return "Not reduced";
+    case HighsPresolveStatus::kInfeasible:
+      return "Infeasible";
+    case HighsPresolveStatus::kUnboundedOrInfeasible:
+      return "Unbounded or infeasible";
+    case HighsPresolveStatus::kReduced:
+      return "Reduced";
+    case HighsPresolveStatus::kReducedToEmpty:
+      return "Reduced to empty";
+    case HighsPresolveStatus::kTimeout:
+      return "Timeout";
+    case HighsPresolveStatus::kNullError:
+      return "Null error";
+    case HighsPresolveStatus::kOptionsError:
+      return "Options error";
+    default:
+      assert(1 == 0);
+      return "Unrecognised presolve status";
+  }
 }
 
 void PresolveComponent::negateReducedLpColDuals(bool reduced) {
@@ -42,7 +70,7 @@ void PresolveComponent::negateReducedLpCost() { return; }
 
 HighsPresolveStatus PresolveComponent::run() {
   presolve::HPresolve presolve;
-  presolve.setInput(data_.reduced_lp_, *options_);
+  presolve.setInput(data_.reduced_lp_, *options_, timer);
 
   HighsModelStatus status = presolve.run(data_.postSolveStack);
 
@@ -59,7 +87,7 @@ HighsPresolveStatus PresolveComponent::run() {
 }
 
 void PresolveComponent::clear() {
-  has_run_ = false;
+  //  has_run_ = false;
   data_.clear();
 }
 namespace presolve {

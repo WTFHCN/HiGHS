@@ -46,12 +46,13 @@ class Highs {
   );
 
   HighsStatus passModel(const HighsInt num_col, const HighsInt num_row,
-                        const HighsInt num_nz, const double* costs,
-                        const double* col_lower, const double* col_upper,
-                        const double* row_lower, const double* row_upper,
-                        const HighsInt* astart, const HighsInt* aindex,
-                        const double* avalue,
+                        const HighsInt num_nz, const bool rowwise,
+                        const double* costs, const double* col_lower,
+                        const double* col_upper, const double* row_lower,
+                        const double* row_upper, const HighsInt* astart,
+                        const HighsInt* aindex, const double* avalue,
                         const HighsInt* integrality = NULL);
+
   /**
    * @brief reads in a model and initializes the HighsModelObject
    */
@@ -181,10 +182,9 @@ class Highs {
    */
 
   /**
-   * @brief Returns the HighsLp instance for the LP of the (first?)
-   * HighsModelObject
+   * @brief Returns the HighsLp instance of the model in HiGHS
    */
-  const HighsLp& getLp() const { return lp_; }
+  const HighsLp& getModel() const { return lp_; }
 
   /**
    * @brief Returns the HighsSolution
@@ -218,6 +218,11 @@ class Highs {
    * @brief Gets the ranging information for the current LP
    */
   HighsStatus getRanging(HighsRanging& ranging);
+
+  /**
+   * @brief Gets the current model objective value
+   */
+  double getObjectiveValue() { return info_.objective_function_value; }
 
   /**
    * Methods for operations with the invertible representation of the
@@ -826,6 +831,11 @@ class Highs {
 #endif
   // Start of deprecated methods
 
+  const HighsLp& getLp() const {
+    deprecationMessage("getLp", "getModel");
+    return getModel();
+  }
+
   HighsStatus setHighsOptionValue(
       const std::string& option,  //!< The option name
       const bool value            //!< The option value
@@ -841,7 +851,8 @@ class Highs {
       const std::string& option,  //!< The option name
       const int value             //!< The option value
   ) {
-    return setHighsOptionValue(option, HighsInt{value});
+    deprecationMessage("setHighsOptionValue", "setOptionValue");
+    return setOptionValue(option, HighsInt{value});
   }
 #endif
 
@@ -899,9 +910,10 @@ class Highs {
       const std::string filename,  //!< The filename
       const bool report_only_non_default_values = true);
 
-  double getObjectiveValue() { return info_.objective_function_value; }
-
-  HighsInt getSimplexIterationCount() { return info_.simplex_iteration_count; }
+  HighsInt getSimplexIterationCount() {
+    deprecationMessage("getSimplexIterationCount", "None");
+    return info_.simplex_iteration_count;
+  }
 
   HighsStatus setHighsLogfile(FILE* logfile = NULL);
 
@@ -922,6 +934,10 @@ class Highs {
   double getHighsInfinity();
 
   double getHighsRunTime();
+
+  void deprecationMessage(const std::string method_name,
+                          const std::string alt_method_name) const;
+
   // End of deprecated methods
  private:
   HighsSolution solution_;
@@ -986,9 +1002,10 @@ class Highs {
   void clearInfo();
   void noSolution();
 
-  void underDevelopmentLogMessage(const string method_name);
   HighsStatus returnFromRun(const HighsStatus return_status);
   HighsStatus returnFromHighs(const HighsStatus return_status);
+
+  void underDevelopmentLogMessage(const std::string method_name);
 
   // Interface methods
   HighsStatus addColsInterface(HighsInt XnumNewCol, const double* XcolCost,

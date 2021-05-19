@@ -241,11 +241,11 @@ HighsStatus Highs::passModel(const HighsLp lp) {
 }
 
 HighsStatus Highs::passModel(const HighsInt num_col, const HighsInt num_row,
-                             const HighsInt num_nz, const double* costs,
-                             const double* col_lower, const double* col_upper,
-                             const double* row_lower, const double* row_upper,
-                             const HighsInt* astart, const HighsInt* aindex,
-                             const double* avalue,
+                             const HighsInt num_nz, const bool rowwise,
+                             const double* costs, const double* col_lower,
+                             const double* col_upper, const double* row_lower,
+                             const double* row_upper, const HighsInt* astart,
+                             const HighsInt* aindex, const double* avalue,
                              const HighsInt* integrality) {
   HighsLp lp;
   lp.numCol_ = num_col;
@@ -270,13 +270,23 @@ HighsStatus Highs::passModel(const HighsInt num_col, const HighsInt num_row,
     assert(astart != NULL);
     assert(aindex != NULL);
     assert(avalue != NULL);
-    lp.Astart_.assign(astart, astart + num_col);
+    if (rowwise) {
+      lp.Astart_.assign(astart, astart + num_row);
+    } else {
+      lp.Astart_.assign(astart, astart + num_col);
+    }
     lp.Aindex_.assign(aindex, aindex + num_nz);
     lp.Avalue_.assign(avalue, avalue + num_nz);
   }
-  lp.Astart_.resize(num_col + 1);
-  lp.Astart_[num_col] = num_nz;
-  lp.orientation_ = MatrixOrientation::kColwise;
+  if (rowwise) {
+    lp.Astart_.resize(num_row + 1);
+    lp.Astart_[num_row] = num_nz;
+    lp.orientation_ = MatrixOrientation::kRowwise;
+  } else {
+    lp.Astart_.resize(num_col + 1);
+    lp.Astart_[num_col] = num_nz;
+    lp.orientation_ = MatrixOrientation::kColwise;
+  }
   if (num_col > 0 && integrality != NULL) {
     lp.integrality_.resize(num_col);
     for (HighsInt iCol = 0; iCol < num_col; iCol++) {
@@ -391,6 +401,7 @@ HighsStatus Highs::run() {
   // Ensure that there is exactly one Highs model object
   assert((HighsInt)hmos_.size() == 1);
   HighsInt min_highs_debug_level = kHighsDebugLevelMin;
+  //    kHighsDebugLevelCostly;
 #ifdef HiGHSDEV
   min_highs_debug_level =  // kHighsDebugLevelMin;
                            //  kHighsDebugLevelCheap;
@@ -1174,27 +1185,37 @@ HighsStatus Highs::getReducedColumn(const HighsInt col, double* col_vector,
 
 HighsStatus Highs::setSolution(const HighsSolution& solution) {
   HighsStatus return_status = HighsStatus::kOk;
-  // Check if solution is valid.
-  assert((HighsInt)solution_.col_value.size() != 0 ||
-         (HighsInt)solution_.col_value.size() != lp_.numCol_);
-  assert((HighsInt)solution.col_dual.size() == 0 ||
-         (HighsInt)solution.col_dual.size() == lp_.numCol_);
-  assert((HighsInt)solution.row_dual.size() == 0 ||
-         (HighsInt)solution.row_dual.size() == lp_.numRow_);
-
-  if (solution.col_value.size()) solution_.col_value = solution.col_value;
-  if (solution.col_dual.size()) solution_.col_dual = solution.col_dual;
-  if (solution.row_dual.size()) solution_.row_dual = solution.row_dual;
-
-  if (solution.col_value.size() > 0) {
-    return_status = interpretCallStatus(calculateRowValues(lp_, solution_),
-                                        return_status, "calculateRowValues");
-    if (return_status == HighsStatus::kError) return return_status;
+  // Check if primal solution is valid.
+  if (lp_.numCol_ > 0 && solution.col_value.size() >= lp_.numCol_) {
+    // Worth considering the column values
+    solution_.col_value = solution.col_value;
+    if (lp_.numRow_ > 0) {
+      // Worth computing the row values
+      solution_.row_value.resize(lp_.numRow_);
+      return_status = interpretCallStatus(calculateRowValues(lp_, solution_),
+                                          return_status, "calculateRowValues");
+      if (return_status == HighsStatus::kError) return return_status;
+    }
+    solution_.value_valid = true;
+  } else {
+    // Primal solution not valid
+    solution_.value_valid = false;
   }
-  if (solution.row_dual.size() > 0) {
-    return_status = interpretCallStatus(calculateColDuals(lp_, solution_),
-                                        return_status, "calculateColDuals");
-    if (return_status == HighsStatus::kError) return return_status;
+  // Check if dual solution is valid.
+  if (lp_.numRow_ > 0 && solution.row_dual.size() >= lp_.numRow_) {
+    // Worth considering the row duals
+    solution_.row_dual = solution.row_dual;
+    if (lp_.numCol_ > 0) {
+      // Worth computing the column duals
+      solution_.col_dual.resize(lp_.numCol_);
+      return_status = interpretCallStatus(calculateColDuals(lp_, solution_),
+                                          return_status, "calculateColDuals");
+      if (return_status == HighsStatus::kError) return return_status;
+    }
+    solution_.dual_valid = true;
+  } else {
+    // Dual solution not valid
+    solution_.dual_valid = false;
   }
   return returnFromHighs(return_status);
 }
@@ -1810,6 +1831,19 @@ double Highs::getInfinity() { return kHighsInf; }
 
 double Highs::getRunTime() { return timer_.readRunHighsClock(); }
 
+void Highs::deprecationMessage(const std::string method_name,
+                               const std::string alt_method_name) const {
+  if (alt_method_name.compare("None") == 0) {
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Method %s is deprecated: no alternative method\n",
+                 method_name.c_str());
+  } else {
+    highsLogUser(options_.log_options, HighsLogType::kWarning,
+                 "Method %s is deprecated: alternative method is %s\n",
+                 method_name.c_str(), alt_method_name.c_str());
+  }
+}
+
 HighsStatus Highs::clearSolver() {
   clearModelStatus();
   clearInfo();
@@ -1923,6 +1957,10 @@ HighsPresolveStatus Highs::runPresolve() {
 
   HighsPresolveStatus presolve_return_status = presolve_.run();
 
+  highsLogDev(options_.log_options, HighsLogType::kVerbose,
+              "presolve_.run() returns status: %s\n",
+              presolve_.presolveStatusToString(presolve_return_status).c_str());
+
   // Update reduction counts.
   switch (presolve_.presolve_status_) {
     case HighsPresolveStatus::kReduced: {
@@ -2003,7 +2041,7 @@ HighsStatus Highs::callSolveMip() {
   //  options_.log_dev_level = kHighsLogDevLevelInfo;
   // Check that the model isn't row-wise
   assert(lp_.orientation_ != MatrixOrientation::kRowwise);
-  HighsMipSolver solver(options_, lp_);
+  HighsMipSolver solver(options_, lp_, solution_);
   solver.run();
   options_.log_dev_level = log_dev_level;
   HighsStatus call_status = HighsStatus::kOk;
@@ -2475,7 +2513,7 @@ HighsStatus Highs::returnFromHighs(HighsStatus highs_return_status) {
   if (timer_.runningRunHighsClock()) timer_.stopRunHighsClock();
   return return_status;
 }
-void Highs::underDevelopmentLogMessage(const string method_name) {
+void Highs::underDevelopmentLogMessage(const std::string method_name) {
   highsLogUser(options_.log_options, HighsLogType::kWarning,
                "Method %s is still under development and behaviour may be "
                "unpredictable\n",

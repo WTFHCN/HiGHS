@@ -46,7 +46,7 @@ local.properties
 [Dd]ebug/
 [Rr]elease/
 x64/
-build/
+build32/
 build64/
 [Bb]in/
 [Oo]bj/
@@ -251,6 +251,9 @@ HighsRunModel.mps
 
 # Website
 htdocs/
+
+# Release documents
+releaseDocs
 
 #HiGHS options files
 *.set

@@ -14,7 +14,7 @@
  * @brief HiGHS main
  */
 #include "Highs.h"
-#include "HighsRuntimeOptions.h"
+#include "lp_data/HighsRuntimeOptions.h"
 
 void printHighsVersionCopyright(const HighsLogOptions& log_options);
 void reportModelStatsOrError(const HighsLogOptions& log_options,
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
   //
   // Load the model from model_file
   HighsStatus read_status = highs.readModel(model_file);
-  reportModelStatsOrError(options.log_options, read_status, highs.getLp());
+  reportModelStatsOrError(options.log_options, read_status, highs.getModel());
   if (read_status == HighsStatus::kError)
     return 1;  // todo: change to read error
   //

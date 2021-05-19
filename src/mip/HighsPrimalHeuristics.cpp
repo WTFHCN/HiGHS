@@ -88,7 +88,10 @@ bool HighsPrimalHeuristics::solveSubMip(
   submipoptions.presolve = "on";
   // setup solver and run it
 
-  HighsMipSolver submipsolver(submipoptions, submip, true);
+  HighsSolution solution;
+  solution.value_valid = false;
+  solution.dual_valid = false;
+  HighsMipSolver submipsolver(submipoptions, submip, solution, true);
   submipsolver.rootbasis = &basis;
   HighsPseudocostInitialization pscostinit(mipsolver.mipdata_->pseudocost, 1);
   submipsolver.pscostinit = &pscostinit;
@@ -383,7 +386,7 @@ retry:
   }
 
   heurlp.removeObsoleteRows(false);
-  if (!solveSubMip(heurlp.getLp(), heurlp.getLpSolver().getBasis(),
+  if (!solveSubMip(heurlp.getModel(), heurlp.getLpSolver().getBasis(),
                    getFixingRate(), localdom.colLower_, localdom.colUpper_,
                    500,  // std::max(50, int(0.05 *
                          // (mipsolver.mipdata_->num_leaves))),
@@ -667,7 +670,7 @@ retry:
   }
 
   heurlp.removeObsoleteRows(false);
-  if (!solveSubMip(heurlp.getLp(), heurlp.getLpSolver().getBasis(),
+  if (!solveSubMip(heurlp.getModel(), heurlp.getLpSolver().getBasis(),
                    getFixingRate(), localdom.colLower_, localdom.colUpper_,
                    500,  // std::max(50, int(0.05 *
                          // (mipsolver.mipdata_->num_leaves))),
@@ -954,7 +957,7 @@ void HighsPrimalHeuristics::centralRounding() {
   ipm.setOptionValue("presolve", "off");
   ipm.setOptionValue("output_flag", false);
   HighsLp lpmodel(
-      *mipsolver.model_);  // mipsolver.mipdata_->lp.getLpSolver().getLp());
+      *mipsolver.model_);  // mipsolver.mipdata_->lp.getLpSolver().getModel());
   // lpmodel.colLower_ = mipsolver.mipdata_->domain.colLower_;
   // lpmodel.colUpper_ = mipsolver.mipdata_->domain.colUpper_;
   lpmodel.colCost_.assign(lpmodel.numCol_, 0.0);

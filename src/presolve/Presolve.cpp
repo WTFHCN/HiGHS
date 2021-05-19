@@ -379,6 +379,10 @@ void Presolve::removeFixed() {
 }
 
 HighsInt Presolve::presolve(HighsInt print) {
+  // This is the original presolve framework, now superseded by
+  //
+  // HPresolve::Result HPresolve::presolve(HighsPostsolveStack&
+  // postSolveStack)
   timer.start_time = timer.getTime();
   bool aggregatorCalled = false;
 
@@ -528,15 +532,17 @@ HighsPresolveStatus Presolve::presolve() {
       else
         presolve_status = HighsPresolveStatus::kReducedToEmpty;
       break;
-    case Stat::kEmpty:
-      presolve_status = HighsPresolveStatus::kEmpty;
-      break;
     case Stat::kOptimal:
       // reduced problem solution indicated as optimal by
       // the solver.
       break;
     case Stat::kTimeout:
       presolve_status = HighsPresolveStatus::kTimeout;
+      break;
+    default:
+      assert(result != result);
+      printf("Unrecognised presolve return of %" HIGHSINT_FORMAT "\n", result);
+      return HighsPresolveStatus::kNullError;
   }
   timer.recordFinish(kTotalPresolveTime);
   if (iPrint > 0) {
@@ -1095,10 +1101,9 @@ void Presolve::resizeProblem() {
 
   chk2.setBoundsCostRHS(colUpper, colLower, colCost, rowLower, rowUpper);
 
-  if (nR + nC == 0) {
-    status = kEmpty;
-    return;
-  }
+  // This is where status = kEmpty was set if nR + nC == 0
+  assert(nR + nC > 0);
+  if (nR + nC == 0) return;
 
   // matrix
   vector<HighsInt> iwork(numCol, 0);

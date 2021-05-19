@@ -404,13 +404,13 @@ void HighsMipSolverData::performRestart() {
   ++numRestarts;
   num_leaves_before_run = num_leaves;
   num_nodes_before_run = num_nodes;
-  HighsInt numLpRows = lp.getLp().numRow_;
+  HighsInt numLpRows = lp.getModel().numRow_;
   HighsInt numModelRows = mipsolver.numRow();
   HighsInt numCuts = numLpRows - numModelRows;
   if (numCuts > 0) postSolveStack.appendCutsToModel(numCuts);
   auto integrality = std::move(presolvedModel.integrality_);
   double offset = presolvedModel.offset_;
-  presolvedModel = lp.getLp();
+  presolvedModel = lp.getModel();
   presolvedModel.offset_ = offset;
   presolvedModel.integrality_ = std::move(integrality);
   const HighsBasis& basis = lp.getLpSolver().getBasis();
@@ -754,6 +754,7 @@ restart:
   //     "dual_simplex_cost_perturbation_multiplier", 10.0);
   lp.setIterationLimit();
   lp.loadModel();
+  lp.setObjectiveLimit(upper_limit);
 
   // add all cuts again after restart
   if (cutpool.getNumCuts() != 0) {

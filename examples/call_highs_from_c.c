@@ -87,12 +87,13 @@ void minimal_api() {
 
   int modelstatus;
 
-  int runstatus = Highs_call(numcol, numrow, numnz,
-			  colcost, collower, colupper, rowlower, rowupper,
-			  astart, aindex, avalue,
-			  colvalue, coldual, rowvalue, rowdual,
-			  colbasisstatus, rowbasisstatus,
-			  &modelstatus);
+  const int rowwise = 0;
+  int runstatus = Highs_lpCall(numcol, numrow, numnz, rowwise,
+			       colcost, collower, colupper, rowlower, rowupper,
+			       astart, aindex, avalue,
+			       colvalue, coldual, rowvalue, rowdual,
+			       colbasisstatus, rowbasisstatus,
+			       &modelstatus);
 
   assert(runstatus == 0);
 
@@ -202,17 +203,16 @@ void full_api() {
   primal_feasibility_tolerance = 1e-6;
   Highs_setDoubleOptionValue(highs, "primal_feasibility_tolerance", primal_feasibility_tolerance);
 
-  Highs_setHighsBoolOptionValue(highs, "output_flag", 0);
+  Highs_setBoolOptionValue(highs, "output_flag", 0);
   printf("Running quietly...\n");
   int runstatus = Highs_run(highs);
   printf("Running loudly...\n");
-  Highs_setHighsBoolOptionValue(highs, "output_flag", 1);
+  Highs_setBoolOptionValue(highs, "output_flag", 1);
 
   // Get the model status
-  const int scaled_model = 0;
-  int modelstatus = Highs_getModelStatus(highs, scaled_model);
+  int modelstatus = Highs_getModelStatus(highs);
 
-  printf("Run status = %d; Model status = %d = %s\n", runstatus, modelstatus, Highs_modelStatusToChar(highs, modelstatus));
+  printf("Run status = %d; Model status = %d\n", runstatus, modelstatus);
 
   double objective_function_value;
   Highs_getDoubleInfoValue(highs, "objective_function_value", &objective_function_value);
@@ -224,9 +224,9 @@ void full_api() {
   Highs_getIntInfoValue(highs, "dual_solution_status", &dual_solution_status);
 
   printf("Objective value = %g; Iteration count = %d\n", objective_function_value, simplex_iteration_count);
-  if (modelstatus == 9) {
-    printf("Solution primal status = %s\n", Highs_solutionStatusToChar(highs, primal_solution_status));
-    printf("Solution dual status = %s\n", Highs_solutionStatusToChar(highs, dual_solution_status));
+  if (modelstatus == 7) {
+    printf("Solution primal status = %d\n", primal_solution_status);
+    printf("Solution dual status = %d\n", dual_solution_status);
     // Get the primal and dual solution
     Highs_getSolution(highs, colvalue, coldual, rowvalue, rowdual);
     // Get the basis
@@ -251,17 +251,21 @@ void full_api() {
   Highs_destroy(highs);
 
   // Define the constraint matrix col-wise to pass to the LP
+  int rowwise = 0;
   int astart[numcol] = {0, 2};
   int aindex[numnz] = {1, 2, 0, 1, 2};
   double avalue[numnz] = {1.0, 2.0, 1.0, 2.0, 1.0};
   highs = Highs_create();
-  runstatus = Highs_passLp(highs, numcol, numrow, numnz,
+  runstatus = Highs_passLp(highs, numcol, numrow, numnz, rowwise,
 			colcost, collower, colupper,
 			rowlower, rowupper,
 			astart, aindex, avalue);
   runstatus = Highs_run(highs);
-  modelstatus = Highs_getModelStatus(highs, scaled_model);
-  printf("Run status = %d; Model status = %d = %s\n", runstatus, modelstatus, Highs_modelStatusToChar(highs, modelstatus));
+  modelstatus = Highs_getModelStatus(highs);
+  printf("Run status = %d; Model status = %d\n", runstatus, modelstatus);
+  int iteration_count;
+  Highs_getIntInfoValue(highs, "simplex_iteration_count", &iteration_count);
+  printf("Iteration count = %d\n", iteration_count);
   Highs_destroy(highs);
 }
 

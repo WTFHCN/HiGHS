@@ -29,7 +29,7 @@
 #include "util/HighsCDouble.h"
 
 HighsMipSolver::HighsMipSolver(const HighsOptions& options, const HighsLp& lp,
-                               bool submip)
+                               const HighsSolution& solution, bool submip)
     : options_mip_(&options),
       model_(&lp),
       solution_objective_(kHighsInf),
@@ -315,7 +315,7 @@ restart:
         mipdata_->lp.storeBasis();
 
       basis = mipdata_->lp.getStoredBasis();
-      if (!basis || !isBasisConsistent(mipdata_->lp.getLp(), *basis)) {
+      if (!basis || !isBasisConsistent(mipdata_->lp.getModel(), *basis)) {
         HighsBasis b = mipdata_->firstrootbasis;
         b.row_status.resize(mipdata_->lp.numRows(), HighsBasisStatus::kBasic);
         basis = std::make_shared<const HighsBasis>(std::move(b));
