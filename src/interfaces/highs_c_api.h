@@ -76,14 +76,8 @@ HighsInt Highs_mipCall(
         integrality,   //!< array of length [numcol] indicating whether
                        //!< variables are continuous (0) or integer (1)
     double* colvalue,  //!< array of length [numcol], filled with column values
-    double* coldual,   //!< array of length [numcol], filled with column duals
     double* rowvalue,  //!< array of length [numrow], filled with row values
-    double* rowdual,   //!< array of length [numrow], filled with row duals
-    HighsInt* colbasisstatus,  //!< array of length [numcol], filled with column
-                               //!< basis stati
-    HighsInt* rowbasisstatus,  //!< array of length [numrow], filled with row
-                               //!< basis status
-    int* modelstatus           //!< status of the model will be saved here
+    int* modelstatus   //!< status of the model will be saved here
 );
 
 /*
@@ -920,6 +914,35 @@ HighsInt Highs_setHighsBoolOptionValue(
     const HighsInt value  //!< new value of option
 );
 
+/**
+ * @brief Runs crossover and loads basis. If no basis is found, the values of
+ * Highs solution will not be modified. If basis is found they are updated
+ * to reflect the corresponding Highs basis.
+ * status
+ */
+int Highs_crossover(
+    void* highs                 //!< HiGHS object reference
+);
+
+// /**
+//  * @brief Returns the current model
+//  */
+// void Highs_getLp(
+//     void *highs,       //!< HiGHS object reference
+//     int* numcol,        //!< number of columns
+//     int* numrow,        //!< number of rows
+//     int* numnz,         //!< number of entries in the constraint matrix
+//     double *colcost,   //!< array of length [numcol] with column costs
+//     double *collower,  //!< array of length [numcol] with lower column bounds
+//     double *colupper,  //!< array of length [numcol] with upper column bounds
+//     double *rowlower,  //!< array of length [numrow] with lower row bounds
+//     double *rowupper,  //!< array of length [numrow] with upper row bounds
+//     int *astart,       //!< array of length [numcol+1] with column start
+//     indices int *
+//         aindex,  //!< array of length [numnz] with row indices of matrix
+//         entries
+//     double *avalue  //!< array of length [numnz] with value of matrix entries
+// );
 HighsInt Highs_setHighsIntOptionValue(
     void* highs,
     const char* option,   //!< name of the option
